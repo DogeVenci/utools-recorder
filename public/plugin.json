@@ -1,0 +1,26 @@
+{
+	"pluginName": "录屏",
+	"description": "屏幕录制",
+	"author": "Dovenci",
+	"main": "index.html",
+	"logo": "logo.png",
+	"version": "1.0.2",
+	"preload":"preload.js",
+	"features": [
+	    {
+			"code": "lp",
+			"explain": "录屏",
+	        "cmds":["录屏"]
+		},
+		{
+			"code": "kslp",
+			"explain": "开始录屏",
+			"cmds":["开始录屏"]
+		},
+		{
+			"code":"tzlp",
+			"explain":"停止录屏",
+			"cmds":["停止录屏"]
+		}
+	]
+}
