@@ -9,6 +9,7 @@ let curStream = null;
 export let isRecording = ref(false);
 export let disableOperation = ref(false);
 export let delayStart = ref(3);
+export let errorText = ref("");
 
 export const getSources = async () => {
   const sources = await desktopCapturer.getSources({
@@ -39,6 +40,7 @@ export const getStream = (source) => {
       });
       resolve(curStream);
     } catch (err) {
+      errorText.value = "请刷新 " + err;
       reject(err);
     }
   });
@@ -88,6 +90,7 @@ export const startRecord = (stream) => {
         })
         .catch((err) => {
           console.log(err);
+          errorText.value = err + "";
         });
     }
   };
@@ -111,6 +114,7 @@ export const startRecord = (stream) => {
   };
   mediaRecorder.onerror = (err) => {
     console.log(err);
+    errorText.value = err + "";
     clearCountDownTimer();
     isRecording.value = false;
   };
@@ -148,8 +152,9 @@ utools.onPluginReady(() => {
     config = utools.db.put({ _id: "lpconfig", delayStart: delayStart.value });
     config._id = "lpconfig";
     if (!config._rev) config._rev = config.rev; //TODO put返回不一样
+  } else {
+    delayStart.value = config.delayStart;
   }
-  delayStart.value = config.delayStart;
   console.log("onPluginReady:", delayStart.value);
   utools.setSubInput((text) => {},
   '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');

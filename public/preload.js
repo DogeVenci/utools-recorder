@@ -1,17 +1,10 @@
-const { desktopCapturer, shell } = require("electron");
+const { desktopCapturer } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
 window.desktopCapturer = desktopCapturer;
 
-const timeslice = 5000;
-let mediaRecorder = null;
-let chunks = [];
-let interval = null;
-let curCode = "lp";
-let delayStart = 3;
 let filePath = null;
-let config = {};
 
 Date.prototype.format = function (fmt) {
   var o = {
@@ -56,96 +49,6 @@ const WriteMediaFile = (data) => {
 
 const CloseMediaFile = () => {
   filePath = null;
-};
-
-const handleStream = (stream) => {
-  const video = document.getElementById("video");
-
-  video.onloadedmetadata = (e) => video.play();
-  mediaRecorder = new MediaRecorder(stream, {
-    mimeType: "video/webm; codecs=h264", //TODO 视频格式转换
-  });
-  mediaRecorder.ondataavailable = (event) => {
-    if (event.data.size > 0) {
-      chunks.push(event.data);
-      const blob = new Blob(chunks, { type: "video/webm; codecs=h264" });
-      blob
-        .arrayBuffer()
-        .then((buffer) => {
-          WriteMediaFile(Buffer.from(buffer));
-          chunks = [];
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-    }
-  };
-  console.log("delayStart:", delayStart);
-  if (delayStart <= 0) {
-    mediaRecorder.start(timeslice);
-    video.srcObject = stream;
-    document.getElementById("switchBtn").value = "停止录制";
-    document.getElementById("switchBtn").onclick = stop;
-    document.getElementById("switchBtn").disabled = false;
-    return;
-  }
-
-  let count = delayStart;
-  if (interval) clearInterval(interval);
-  document.getElementById("switchBtn").disabled = true;
-  interval = setInterval(() => {
-    document.getElementById("switchBtn").value = `正在开始 (${count - 1})`;
-    count--;
-    if (count <= 0) {
-      count = delayStart;
-      if (!mediaRecorder) clearInterval(interval);
-      mediaRecorder.start(timeslice);
-      video.srcObject = stream;
-      document.getElementById("switchBtn").value = "停止录制";
-      document.getElementById("switchBtn").onclick = stop;
-      clearInterval(interval);
-      document.getElementById("switchBtn").disabled = false;
-    }
-  }, 1000);
-};
-
-const start = async () => {
-  if (mediaRecorder) return;
-  const sources = await desktopCapturer.getSources({
-    types: ["screen", "window"], //TODO 窗口录制
-  });
-  let audio = {
-    mandatory: {
-      chromeMediaSource: "desktop",
-    },
-  };
-  if (utools.isMacOs() || utools.isLinux()) {
-    audio = false;
-  }
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio,
-    video: {
-      mandatory: {
-        chromeMediaSource: "desktop",
-        chromeMediaSourceId: sources[0].id,
-      },
-    },
-  });
-  NewMediaFile();
-  handleStream(stream);
-};
-
-const stop = async () => {
-  if (interval) clearInterval(interval);
-  if (!mediaRecorder) return;
-  try {
-    mediaRecorder.stop();
-  } catch (err) {
-    mediaRecorder = null;
-    chunks = [];
-    document.getElementById("switchBtn").value = "开始录制";
-    document.getElementById("switchBtn").onclick = start;
-  }
 };
 
 window.onload = () => {};

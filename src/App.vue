@@ -1,5 +1,12 @@
 <template>
   <div class="px-4">
+    <a-alert
+      v-if="errorText.length"
+      type="error"
+      :message="errorText"
+      banner
+      closable
+    />
     <div class="py-4 flex justify-space-between">
       <div class="flex">
         <a-button
@@ -9,7 +16,11 @@
           :disabled="disableOperation"
           >{{ btnText }}</a-button
         >
-        <div class="ml-4">
+        <a-tooltip
+          class="ml-4"
+          placement="bottom"
+          title="快捷键开始关键字不受影响 0不延迟"
+        >
           延迟
           <a-input-number
             class="width-4"
@@ -20,34 +31,41 @@
             :max="60"
             :disabled="isRecording || disableOperation"
           />
-          秒开始
-        </div>
-        <a-select
-          class="ml-4 width-20"
-          label-in-value
-          v-model:value="selectValue"
-          @change="handleSelectChange"
-          :disabled="isRecording || disableOperation"
+          秒
+        </a-tooltip>
+        <a-tooltip
+          placement="bottom"
+          title="选择录制窗口(默认主屏幕)刷新后选择"
         >
-          <a-select-option
-            v-for="source in state.displaySources"
-            :key="source.id"
-            :value="source.id"
-            >{{ source.name }}</a-select-option
+          <a-select
+            class="ml-4 width-20"
+            label-in-value
+            v-model:value="selectValue"
+            @select="handleSelectChange"
+            :disabled="isRecording || disableOperation"
           >
-        </a-select>
+            <a-select-option
+              v-for="source in state.displaySources"
+              :key="source.id"
+              :value="source.id"
+              >{{ source.name }}</a-select-option
+            >
+          </a-select>
+        </a-tooltip>
+        <a-tooltip placement="bottom" title="刷新可选择窗口列表">
+          <a-button @click="onRefreshClick">刷新</a-button>
+        </a-tooltip>
       </div>
-
       <a id="linkBtn" href="#" @click="openVideoDir">打开视频目录</a>
     </div>
-    <a-divider></a-divider>
+    <div class="mb-4 border"></div>
     <video id="video" class="width-100" muted></video>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue"
-import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, putConfig, countDownTimer } from "./assets/recorder.js"
+import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, putConfig, countDownTimer, errorText } from "./assets/recorder.js"
 
 let selectValue = ref({ key: "screen:0:0" })
 let state = reactive({})
@@ -73,6 +91,7 @@ onMounted(() => {
 
 getSources().then(sources => {
   state.displaySources = sources
+  selectValue.value = { key: sources[0].id }
   getStream(sources[0]).then(stream => {
     video.srcObject = stream;
   })
@@ -94,6 +113,14 @@ const onDelayChange = (e) => {
     return
   }
   putConfig(delay)
+}
+
+const onRefreshClick = () => {
+  getSources().then(sources => {
+    state.displaySources = sources
+    selectValue.value = { key: sources[0].id }
+    handleSelectChange(selectValue.value)//TODO 改变后不调用change
+  })
 }
 
 const handleSelectChange = (value) => {
@@ -149,6 +176,19 @@ const handleSelectChange = (value) => {
 
 .ml-4 {
   margin-left: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.border {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.my-4 {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
 }
 
 .flex {
