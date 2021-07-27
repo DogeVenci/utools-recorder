@@ -3,9 +3,12 @@ const timeslice = 5000;
 let mediaRecorder = null;
 let chunks = [];
 let interval = null;
+let config = { _id: "lpconfig" };
+let curStream = null;
 
 export let isRecording = ref(false);
 export let disableOperation = ref(false);
+export let delayStart = ref(3);
 
 export const getSources = async () => {
   const sources = await desktopCapturer.getSources({
@@ -14,7 +17,7 @@ export const getSources = async () => {
   return sources;
 };
 
-export const getStream = async (source) => {
+export const getStream = (source) => {
   let audio = {
     mandatory: {
       chromeMediaSource: "desktop",
@@ -23,26 +26,38 @@ export const getStream = async (source) => {
   if (utools.isMacOs() || utools.isLinux()) {
     audio = false;
   }
-  return navigator.mediaDevices.getUserMedia({
-    audio,
-    video: {
-      mandatory: {
-        chromeMediaSource: "desktop",
-        chromeMediaSourceId: source.id,
-      },
-    },
+  return new Promise(async (resolve, reject) => {
+    try {
+      curStream = await navigator.mediaDevices.getUserMedia({
+        audio,
+        video: {
+          mandatory: {
+            chromeMediaSource: "desktop",
+            chromeMediaSourceId: source.id,
+          },
+        },
+      });
+      resolve(curStream);
+    } catch (err) {
+      reject(err);
+    }
   });
 };
 
 export const countDownTimer = (seconds, finalFunc, countFunc) => {
-  if (seconds <= 0) typeof finalFunc == "function" && finalFunc();
+  if (seconds <= 0) {
+    typeof finalFunc == "function" && finalFunc();
+    return;
+  }
+  disableOperation.value = true;
   let count = seconds;
   if (interval) clearInterval(interval);
   interval = setInterval(() => {
-    typeof countFunc == "function" && countFunc();
     count--;
+    typeof countFunc == "function" && countFunc(count);
     if (count <= 0) {
       typeof finalFunc == "function" && finalFunc();
+      disableOperation.value = false;
       clearInterval(interval);
     }
   }, 1000);
@@ -50,10 +65,14 @@ export const countDownTimer = (seconds, finalFunc, countFunc) => {
 
 export const clearCountDownTimer = () => {
   if (interval) clearInterval(interval);
+  disableOperation.value = false;
 };
 
 export const startRecord = (stream) => {
   if (mediaRecorder) return;
+  if (!stream) return;
+  console.log("startRecord");
+  // utools.shellBeep();
   mediaRecorder = new MediaRecorder(stream, {
     mimeType: "video/webm; codecs=h264", //TODO 视频格式转换
   });
@@ -77,6 +96,12 @@ export const startRecord = (stream) => {
     isRecording.value = true;
   };
   mediaRecorder.onstop = async () => {
+    if (chunks.length > 0) {
+      //写入未完成的数据
+      const blob = new Blob(chunks, { type: "video/webm; codecs=h264" });
+      const buffer = mediaFile.Buffer.from(await blob.arrayBuffer());
+      mediaFile.WriteMediaFile(buffer);
+    }
     utools.shellShowItemInFolder(mediaFile.getMediaFilePath());
     mediaRecorder = null;
     chunks = [];
@@ -85,6 +110,8 @@ export const startRecord = (stream) => {
     isRecording.value = false;
   };
   mediaRecorder.onerror = (err) => {
+    console.log(err);
+    clearCountDownTimer();
     isRecording.value = false;
   };
 
@@ -92,6 +119,7 @@ export const startRecord = (stream) => {
 };
 
 export const stopRecord = () => {
+  clearCountDownTimer();
   if (!mediaRecorder) return;
   mediaRecorder.stop();
 };
@@ -104,3 +132,53 @@ export const getRecorderState = () => {
 export const openVideoDir = () => {
   utools.shellOpenPath(utools.getPath("videos"));
 };
+
+export const putConfig = (val) => {
+  config.delayStart = val; //TODO key赋值
+  config = utools.db.put(config);
+  config._id = "lpconfig";
+  if (!config._rev) config._rev = config.rev; //TODO put返回不一样
+};
+
+// utools 事件
+utools.onPluginReady(() => {
+  config = utools.db.get("lpconfig");
+  console.log(config);
+  if (!config) {
+    config = utools.db.put({ _id: "lpconfig", delayStart: delayStart.value });
+    config._id = "lpconfig";
+    if (!config._rev) config._rev = config.rev; //TODO put返回不一样
+  }
+  delayStart.value = config.delayStart;
+  console.log("onPluginReady:", delayStart.value);
+  utools.setSubInput((text) => {},
+  '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');
+});
+
+utools.onPluginEnter(({ code, type, payload }) => {
+  console.log(code, type, payload);
+  if (code === "kslp") {
+    utools.setExpendHeight(1);
+    if (curStream) {
+      startRecord(curStream);
+      utools.hideMainWindow();
+    } else {
+      getSources().then((sources) => {
+        getStream(sources[0]).then((stream) => {
+          startRecord(stream);
+          utools.hideMainWindow();
+        });
+      });
+    }
+  } else if (code === "tzlp") {
+    utools.setExpendHeight(0);
+    stopRecord();
+    utools.outPlugin();
+  } else {
+    utools.setExpendHeight(500);
+  }
+});
+
+utools.onPluginOut(() => {
+  console.log("onPluginOut");
+});

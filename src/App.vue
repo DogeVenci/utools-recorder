@@ -2,28 +2,32 @@
   <div class="px-4">
     <div class="py-4 flex justify-space-between">
       <div class="flex">
-        <a-button type="primary" id="switchBtn" @click="onRecBtnClick">{{
-          isRecording ? "停止录制" : "开始录制"
-        }}</a-button>
+        <a-button
+          type="primary"
+          id="switchBtn"
+          @click="onRecBtnClick"
+          :disabled="disableOperation"
+          >{{ btnText }}</a-button
+        >
         <div class="ml-4">
           延迟
           <a-input-number
             class="width-4"
             id="inputDelay"
-            v-model:value="delayValue"
+            v-model:value="delayStart"
             @change="onDelayChange"
             :min="0"
             :max="60"
-            :disabled="isRecording"
+            :disabled="isRecording || disableOperation"
           />
           秒开始
         </div>
         <a-select
-          class="width-20"
+          class="ml-4 width-20"
           label-in-value
           v-model:value="selectValue"
           @change="handleSelectChange"
-          :disabled="isRecording"
+          :disabled="isRecording || disableOperation"
         >
           <a-select-option
             v-for="source in state.displaySources"
@@ -42,13 +46,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue"
-import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording } from "./assets/recorder.js"
+import { ref, reactive, onMounted, computed } from "vue"
+import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, putConfig, countDownTimer } from "./assets/recorder.js"
 
-let delayValue = ref(3)
 let selectValue = ref({ key: "screen:0:0" })
 let state = reactive({})
 let video = null;
+let countDown = ref(0);
+
+const btnText = computed(() => {
+  if (isRecording.value) {
+    return "停止录制"
+  } else {
+    if (disableOperation.value && countDown.value) {
+      return `Starting(${countDown.value})`
+    } else {
+      return "开始录制"
+    }
+  }
+})
 
 onMounted(() => {
   video = document.getElementById("video");
@@ -63,15 +79,21 @@ getSources().then(sources => {
 })
 
 const onRecBtnClick = () => {
-  getRecorderState() == "inactive" ? startRecord(video.srcObject) : stopRecord()
+  if (getRecorderState() == "inactive") {
+    countDownTimer(delayStart.value, () => startRecord(video.srcObject), (count) => {
+      countDown.value = count
+    })
+  } else {
+    stopRecord()
+  }
 }
 
 const onDelayChange = (e) => {
-  let delay = parseInt(delayValue.value)
+  let delay = parseInt(delayStart.value)
   if (delay < 0 || isNaN(delay)) {
     return
   }
-  console.log(delay)
+  putConfig(delay)
 }
 
 const handleSelectChange = (value) => {

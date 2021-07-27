@@ -80,27 +80,6 @@ const handleStream = (stream) => {
         });
     }
   };
-  mediaRecorder.onerror = (err) => {
-    console.log(err);
-  };
-  mediaRecorder.onstop = async () => {
-    video.srcObject = null;
-    console.log("onstop", chunks);
-    if (chunks.length > 0) {
-      const blob = new Blob(chunks, { type: "video/webm; codecs=h264" });
-      const buffer = Buffer.from(await blob.arrayBuffer());
-      WriteMediaFile(buffer);
-    }
-
-    shell.showItemInFolder(filePath);
-    shell.beep();
-    mediaRecorder = null;
-    chunks = [];
-    CloseMediaFile();
-    document.getElementById("switchBtn").value = "开始录制";
-    document.getElementById("switchBtn").onclick = start;
-  };
-
   console.log("delayStart:", delayStart);
   if (delayStart <= 0) {
     mediaRecorder.start(timeslice);
@@ -169,60 +148,11 @@ const stop = async () => {
   }
 };
 
-const onInputDelayStart = () => {
-  delayStart = parseInt(document.getElementById("inputDelay").value);
-  console.log("onInputDelayStart", delayStart);
-  if (delayStart < 0 || isNaN(delayStart)) {
-    delayStart = 0;
-    document.getElementById("inputDelay").value = delayStart;
-  }
-  config.delayStart = delayStart;
-  utools.db.put(config);
-};
-
-window.onload = () => {
-  // document.getElementById("switchBtn").onclick = start;
-  document.getElementById("inputDelay").oninput = onInputDelayStart;
-};
+window.onload = () => {};
 
 window.onbeforeunload = () => {
   console.log("onbeforeunload");
-  stop();
 };
-
-utools.onPluginEnter(({ code, type, payload }) => {
-  console.log(code, type, payload);
-  curCode = code;
-  if (code === "kslp") {
-    utools.setExpendHeight(0);
-    utools.hideMainWindow();
-    utools.showNotification("录屏开始");
-    start();
-  } else if (code === "tzlp") {
-    utools.setExpendHeight(0);
-    stop();
-    utools.outPlugin();
-  } else {
-    utools.setExpendHeight(500);
-  }
-});
-
-utools.onPluginOut(() => {
-  console.log("onPluginOut");
-});
-
-utools.onPluginReady(() => {
-  config = utools.db.get("lpconfig");
-  if (!config) {
-    config = utools.db.put({ _id: "lpconfig", delayStart });
-  } else {
-    delayStart = config.delayStart;
-    document.getElementById("inputDelay").value = delayStart;
-  }
-  console.log("onPluginReady:", delayStart);
-  utools.setSubInput((text) => {},
-  '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');
-});
 
 const getMediaFilePath = () => filePath;
 
