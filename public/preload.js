@@ -35,7 +35,7 @@ Date.prototype.format = function (fmt) {
 
 const NewMediaFile = () => {
   filePath = path.resolve(
-    utools.getPath("videos"),
+    getOutputDir(),
     `${new Date().format("yyyyMMddhhmmss")}.webm`
   );
   return filePath;
@@ -51,6 +51,15 @@ const CloseMediaFile = () => {
   filePath = null;
 };
 
+const getOutputDir = () => {
+  const output = utools.dbStorage.getItem("output") || utools.getPath("videos");
+  return output;
+};
+
+const setOutputDir = (dirPath) => {
+  utools.dbStorage.setItem("output", dirPath);
+};
+
 window.onload = () => {};
 
 window.onbeforeunload = () => {
@@ -64,5 +73,7 @@ window.mediaFile = {
   NewMediaFile,
   WriteMediaFile,
   CloseMediaFile,
+  getOutputDir,
+  setOutputDir,
   Buffer,
 };

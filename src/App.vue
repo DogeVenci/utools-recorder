@@ -33,30 +33,51 @@
           />
           秒
         </a-tooltip>
-        <a-tooltip
-          placement="bottom"
-          title="选择录制窗口(默认主屏幕)刷新后选择"
-        >
-          <a-select
-            class="ml-4 width-20"
-            label-in-value
-            v-model:value="selectValue"
-            @select="handleSelectChange"
-            :disabled="isRecording || disableOperation"
+        <a-button-group>
+          <a-tooltip
+            placement="bottom"
+            title="选择录制窗口(默认主屏幕)刷新后选择"
           >
-            <a-select-option
-              v-for="source in state.displaySources"
-              :key="source.id"
-              :value="source.id"
-              >{{ source.name }}</a-select-option
+            <a-select
+              class="ml-4 width-20"
+              label-in-value
+              v-model:value="selectValue"
+              @select="handleSelectChange"
+              :disabled="isRecording || disableOperation"
             >
-          </a-select>
-        </a-tooltip>
-        <a-tooltip placement="bottom" title="刷新可选择窗口列表">
-          <a-button @click="onRefreshClick">刷新</a-button>
-        </a-tooltip>
+              <a-select-option
+                v-for="source in state.displaySources"
+                :key="source.id"
+                :value="source.id"
+                >{{ source.name }}</a-select-option
+              >
+            </a-select>
+          </a-tooltip>
+          <a-tooltip placement="bottom" title="刷新可选择窗口列表">
+            <a-button
+              type="primary"
+              @click="onRefreshClick"
+              :disabled="isRecording || disableOperation"
+            >
+              <template #icon>
+                <SyncOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
+        </a-button-group>
       </div>
-      <a id="linkBtn" href="#" @click="openVideoDir">打开视频目录</a>
+      <a-button-group>
+        <a-tooltip placement="bottom" title="选择录像保存目录">
+          <a-button @click="onSaveClick">保存位置</a-button>
+        </a-tooltip>
+        <a-tooltip placement="bottom" title="打开录像目录">
+          <a-button type="primary" @click="openVideoDir">
+            <template #icon>
+              <FolderOpenOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
+      </a-button-group>
     </div>
     <div class="mb-4 border"></div>
     <video id="video" class="width-100" muted></video>
@@ -66,6 +87,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue"
 import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, putConfig, countDownTimer, errorText } from "./assets/recorder.js"
+import { SyncOutlined, FolderOpenOutlined } from '@ant-design/icons-vue';
 
 let selectValue = ref({ key: "screen:0:0" })
 let state = reactive({})
@@ -85,7 +107,7 @@ const btnText = computed(() => {
 })
 
 onMounted(() => {
-  video = document.getElementById("video");
+  video = document.getElementById("video");//TODO
   video.onloadedmetadata = (e) => video.play();
 })
 
@@ -113,6 +135,23 @@ const onDelayChange = (e) => {
     return
   }
   putConfig(delay)
+}
+
+const onSaveClick = () => {
+  const dirs = utools?.showOpenDialog({
+    title: '保存位置',
+    defaultPath: mediaFile.getOutputDir(),
+    buttonLabel: '选择此目录',
+    properties: [
+      "openDirectory",
+      "createDirectory",
+      "dontAddToRecent",
+      "treatPackageAsDirectory"
+    ]
+  })
+  if (dirs?.length && dirs[0]?.length) {
+    mediaFile.setOutputDir(dirs[0])
+  }
 }
 
 const onRefreshClick = () => {

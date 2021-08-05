@@ -20,6 +20,7 @@ export const getSources = async () => {
 
 export const getStream = (source) => {
   let audio = {
+    //TODO 无法获得音频设备得情况
     mandatory: {
       chromeMediaSource: "desktop",
     },
@@ -40,7 +41,7 @@ export const getStream = (source) => {
       });
       resolve(curStream);
     } catch (err) {
-      errorText.value = "请刷新 " + err;
+      errorText.value = "" + err;
       reject(err);
     }
   });
@@ -134,7 +135,7 @@ export const getRecorderState = () => {
 };
 
 export const openVideoDir = () => {
-  utools.shellOpenPath(utools.getPath("videos"));
+  utools.shellOpenPath(mediaFile.getOutputDir());
 };
 
 export const putConfig = (val) => {
@@ -145,45 +146,47 @@ export const putConfig = (val) => {
 };
 
 // utools 事件
-utools.onPluginReady(() => {
-  config = utools.db.get("lpconfig");
-  console.log(config);
-  if (!config) {
-    config = utools.db.put({ _id: "lpconfig", delayStart: delayStart.value });
-    config._id = "lpconfig";
-    if (!config._rev) config._rev = config.rev; //TODO put返回不一样
-  } else {
-    delayStart.value = config.delayStart;
-  }
-  console.log("onPluginReady:", delayStart.value);
-  utools.setSubInput((text) => {},
-  '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');
-});
-
-utools.onPluginEnter(({ code, type, payload }) => {
-  console.log(code, type, payload);
-  if (code === "kslp") {
-    utools.setExpendHeight(1);
-    if (curStream) {
-      startRecord(curStream);
-      utools.hideMainWindow();
+if (typeof utools != "undefined") {
+  utools.onPluginReady(() => {
+    config = utools.db.get("lpconfig");
+    console.log(config);
+    if (!config) {
+      config = utools.db.put({ _id: "lpconfig", delayStart: delayStart.value });
+      config._id = "lpconfig";
+      if (!config._rev) config._rev = config.rev; //TODO put返回不一样
     } else {
-      getSources().then((sources) => {
-        getStream(sources[0]).then((stream) => {
-          startRecord(stream);
-          utools.hideMainWindow();
-        });
-      });
+      delayStart.value = config.delayStart;
     }
-  } else if (code === "tzlp") {
-    utools.setExpendHeight(0);
-    stopRecord();
-    utools.outPlugin();
-  } else {
-    utools.setExpendHeight(500);
-  }
-});
+    console.log("onPluginReady:", delayStart.value);
+    utools.setSubInput((text) => {},
+    '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');
+  });
 
-utools.onPluginOut(() => {
-  console.log("onPluginOut");
-});
+  utools.onPluginEnter(({ code, type, payload }) => {
+    console.log(code, type, payload);
+    if (code === "kslp") {
+      utools.setExpendHeight(1);
+      if (curStream) {
+        startRecord(curStream); //TODO 窗口关闭后需要刷新
+        utools.hideMainWindow();
+      } else {
+        getSources().then((sources) => {
+          getStream(sources[0]).then((stream) => {
+            startRecord(stream);
+            utools.hideMainWindow();
+          });
+        });
+      }
+    } else if (code === "tzlp") {
+      utools.setExpendHeight(0);
+      stopRecord();
+      utools.outPlugin();
+    } else {
+      utools.setExpendHeight(500);
+    }
+  });
+
+  utools.onPluginOut(() => {
+    console.log("onPluginOut");
+  });
+}
