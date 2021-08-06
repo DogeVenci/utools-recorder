@@ -9,7 +9,13 @@ export let isRecording = ref(false);
 export let disableOperation = ref(false);
 export let delayStart = ref(3);
 export let errorText = ref("");
-export let audioEnabled = ref(true);
+export let audioSource = ref({ key: "system" });
+
+if (utools.isWindows()) {
+  audioSource.value = { key: "system" };
+} else {
+  audioSource.value = { key: "muted" };
+}
 
 export const getSources = async () => {
   const sources = await desktopCapturer.getSources({
@@ -18,18 +24,18 @@ export const getSources = async () => {
   return sources;
 };
 
-export const getStream = (source) => {
+const getUserMediaBySystem = async (source, muted) => {
   let audio = {
     //TODO 无法获得音频设备得情况
     mandatory: {
       chromeMediaSource: "desktop",
     },
   };
-  if (utools.isMacOs() || utools.isLinux() || !audioEnabled.value) {
+  // if (utools.isMacOs() || utools.isLinux() || muted) {
+  if (muted) {
     console.log("disable audio");
     audio = false;
   }
-
   return new Promise(async (resolve, reject) => {
     try {
       curStream = await navigator.mediaDevices.getUserMedia({
@@ -44,7 +50,7 @@ export const getStream = (source) => {
       const videoTracks = curStream.getVideoTracks();
       if (videoTracks?.length > 0) {
         videoTracks[0].onended = () => {
-          errorText.value = "video source is ended";
+          errorText.value = Date.now() + " video source is ended";
         };
       }
       resolve(curStream);
@@ -53,6 +59,46 @@ export const getStream = (source) => {
       reject(err);
     }
   });
+};
+
+const getUserMediaByMicphone = async (source) => {
+  console.log("getUserMediaByMicphone");
+  return new Promise(async (resolve, reject) => {
+    try {
+      //navigator.mediaDevices.enumerateDevices()
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+      //不能同时打开mic和录屏源
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: "desktop",
+            chromeMediaSourceId: source.id,
+          },
+        },
+      });
+      curStream = new MediaStream([
+        ...videoStream.getVideoTracks(),
+        ...audioStream.getAudioTracks(),
+      ]);
+      resolve(curStream);
+    } catch (err) {
+      errorText.value = "" + err;
+      reject(err);
+    }
+  });
+};
+
+export const getStream = (source) => {
+  if (audioSource.value.key == "mic") {
+    return getUserMediaByMicphone(source);
+  } else if (audioSource.value.key == "muted") {
+    return getUserMediaBySystem(source, true);
+  } else {
+    return getUserMediaBySystem(source, false);
+  }
 };
 
 export const countDownTimer = (seconds, finalFunc, countFunc) => {
@@ -161,10 +207,11 @@ if (typeof utools != "undefined") {
     delayStart.value = utools.dbStorage.getItem("delayStart") || 3;
     console.log("onPluginReady:", delayStart.value);
 
-    audioEnabled.value = utools.dbStorage.getItem("audioEnabled");
-    if (audioEnabled.value == null) {
-      audioEnabled.value = true;
+    const audioConfig = utools.dbStorage.getItem("audioSource");
+    if (audioConfig) {
+      audioSource.value = { key: audioConfig };
     }
+
     utools.setSubInput((text) => {},
     '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');
   });
@@ -189,7 +236,7 @@ if (typeof utools != "undefined") {
       stopRecord();
       utools.outPlugin();
     } else {
-      utools.setExpendHeight(500);
+      utools.setExpendHeight(600);
     }
   });
 

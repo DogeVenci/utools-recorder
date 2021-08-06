@@ -17,7 +17,7 @@
           >{{ btnText }}</a-button
         >
         <a-tooltip
-          class="ml-4"
+          class="ml-3"
           placement="bottom"
           title="快捷键开始不受此影响 0s不延迟"
         >
@@ -38,7 +38,7 @@
             title="选择录制窗口(新建或关闭窗口需刷新)"
           >
             <a-select
-              class="ml-4 width-20"
+              class="ml-3 width-20"
               label-in-value
               v-model:value="selectValue"
               @select="handleSelectChange"
@@ -64,14 +64,25 @@
             </a-button>
           </a-tooltip>
         </a-button-group>
-        <div class="ml-4 self-end" v-if="showAudioSwitch()">
-          <a-tooltip placement="bottom" title="声音开关">
-            <a-switch
-              v-model:checked="audioEnabled"
+        <div class="ml-3 self-end">
+          <a-tooltip
+            placement="bottom"
+            title="选择音频输入 Mac和Linux不支持系统内录 麦克风输入部分支持"
+          >
+            <a-select
+              class="width-8"
+              label-in-value
+              v-model:value="audioSource"
+              @change="onAudioChange"
               :disabled="isRecording || disableOperation"
-              @change="onAudioEnabled"
-            ></a-switch>
-            音频
+            >
+              <a-select-option
+                v-for="source in state.audioSources"
+                :key="source.id"
+                :value="source.id"
+                >{{ source.name }}</a-select-option
+              >
+            </a-select>
           </a-tooltip>
         </div>
       </div>
@@ -99,11 +110,11 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from "vue"
-import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, countDownTimer, errorText, audioEnabled } from "./assets/recorder.js"
+import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, countDownTimer, errorText, audioSource } from "./assets/recorder.js"
 import { SyncOutlined, FolderOpenOutlined } from '@ant-design/icons-vue';
 
 let selectValue = ref({ key: "screen:0:0" })
-let state = reactive({})
+let state = reactive({ audioSources: [{ id: "system", name: "系统" }, { id: "mic", name: "麦克风输入" }, { id: "muted", name: "静音" }] })
 let video = null;
 let countDown = ref(0);
 
@@ -116,7 +127,7 @@ const btnText = computed(() => {
     return "停止录制"
   } else {
     if (disableOperation.value && countDown.value) {
-      return `Starting(${countDown.value})`
+      return `准备(${countDown.value})`
     } else {
       return "开始录制"
     }
@@ -133,6 +144,9 @@ getSources().then(sources => {
   selectValue.value = { key: sources[0].id }
   getStream(sources[0]).then(stream => {
     video.srcObject = stream;
+    // setTimeout(() => {
+    //   resizeWindow()
+    // }, 500)
   })
 })
 
@@ -179,14 +193,16 @@ const onRefreshClick = () => {
   })
 }
 
-const onAudioEnabled = () => {
-  console.log("onAudioEnabled")
-  utools?.dbStorage.setItem("audioEnabled", audioEnabled.value)
+const onAudioChange = () => {
+  console.log(audioSource.value.key)
+  utools?.dbStorage.setItem("audioSource", audioSource.value.key)
   handleSelectChange(selectValue.value)
 }
 
-const showAudioSwitch = () => utools?.isWindows()
-
+// const resizeWindow = () => {
+//   const height = document.getElementById("app")?.offsetHeight || 300
+//   height > 300 && utools?.setExpendHeight(height)
+// }
 
 const handleSelectChange = (value) => {
   console.log(value)
@@ -194,7 +210,8 @@ const handleSelectChange = (value) => {
   getStream(source).then(stream => {
     video.srcObject = stream;
     setTimeout(() => {
-      utools.showMainWindow();
+      // resizeWindow()
+      utools?.showMainWindow();
     }, 500)
   }).catch(err => {
     console.log("get stream:", err)
@@ -237,6 +254,10 @@ const handleSelectChange = (value) => {
 
 .py-4 {
   padding: 1rem 0;
+}
+
+.ml-3 {
+  margin-left: 0.75rem;
 }
 
 .ml-4 {
@@ -287,6 +308,10 @@ const handleSelectChange = (value) => {
 
 .width-4 {
   width: 4rem;
+}
+
+.width-8 {
+  width: 8rem;
 }
 
 .width-20 {
