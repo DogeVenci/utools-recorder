@@ -3,13 +3,13 @@ const timeslice = 5000;
 let mediaRecorder = null;
 let chunks = [];
 let interval = null;
-let config = { _id: "lpconfig" };
 let curStream = null;
 
 export let isRecording = ref(false);
 export let disableOperation = ref(false);
 export let delayStart = ref(3);
 export let errorText = ref("");
+export let audioEnabled = ref(true);
 
 export const getSources = async () => {
   const sources = await desktopCapturer.getSources({
@@ -25,9 +25,11 @@ export const getStream = (source) => {
       chromeMediaSource: "desktop",
     },
   };
-  if (utools.isMacOs() || utools.isLinux()) {
+  if (utools.isMacOs() || utools.isLinux() || !audioEnabled.value) {
+    console.log("disable audio");
     audio = false;
   }
+
   return new Promise(async (resolve, reject) => {
     try {
       curStream = await navigator.mediaDevices.getUserMedia({
@@ -39,6 +41,12 @@ export const getStream = (source) => {
           },
         },
       });
+      const videoTracks = curStream.getVideoTracks();
+      if (videoTracks?.length > 0) {
+        videoTracks[0].onended = () => {
+          errorText.value = "video source is ended";
+        };
+      }
       resolve(curStream);
     } catch (err) {
       errorText.value = "" + err;
@@ -75,6 +83,11 @@ export const startRecord = (stream) => {
   if (mediaRecorder) return;
   if (!stream) return;
   console.log("startRecord");
+  const videoTracks = stream.getVideoTracks();
+  if (videoTracks?.length > 0 && videoTracks[0].readyState == "ended") {
+    errorText.value = "startRecord failed: video source is ended";
+    return;
+  }
   // utools.shellBeep();
   mediaRecorder = new MediaRecorder(stream, {
     mimeType: "video/webm; codecs=h264", //TODO 视频格式转换
@@ -120,7 +133,11 @@ export const startRecord = (stream) => {
     isRecording.value = false;
   };
 
-  mediaRecorder.start(timeslice);
+  try {
+    mediaRecorder.start(timeslice);
+  } catch (err) {
+    errorText.value = "" + err;
+  }
 };
 
 export const stopRecord = () => {
@@ -138,26 +155,16 @@ export const openVideoDir = () => {
   utools.shellOpenPath(mediaFile.getOutputDir());
 };
 
-export const putConfig = (val) => {
-  config.delayStart = val; //TODO key赋值
-  config = utools.db.put(config);
-  config._id = "lpconfig";
-  if (!config._rev) config._rev = config.rev; //TODO put返回不一样
-};
-
 // utools 事件
 if (typeof utools != "undefined") {
   utools.onPluginReady(() => {
-    config = utools.db.get("lpconfig");
-    console.log(config);
-    if (!config) {
-      config = utools.db.put({ _id: "lpconfig", delayStart: delayStart.value });
-      config._id = "lpconfig";
-      if (!config._rev) config._rev = config.rev; //TODO put返回不一样
-    } else {
-      delayStart.value = config.delayStart;
-    }
+    delayStart.value = utools.dbStorage.getItem("delayStart") || 3;
     console.log("onPluginReady:", delayStart.value);
+
+    audioEnabled.value = utools.dbStorage.getItem("audioEnabled");
+    if (audioEnabled.value == null) {
+      audioEnabled.value = true;
+    }
     utools.setSubInput((text) => {},
     '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');
   });

@@ -60,8 +60,6 @@ const setOutputDir = (dirPath) => {
   utools.dbStorage.setItem("output", dirPath);
 };
 
-window.onload = () => {};
-
 window.onbeforeunload = () => {
   console.log("onbeforeunload");
 };

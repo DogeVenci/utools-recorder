@@ -19,7 +19,7 @@
         <a-tooltip
           class="ml-4"
           placement="bottom"
-          title="快捷键开始关键字不受影响 0不延迟"
+          title="快捷键开始不受此影响 0s不延迟"
         >
           延迟
           <a-input-number
@@ -31,12 +31,11 @@
             :max="60"
             :disabled="isRecording || disableOperation"
           />
-          秒
         </a-tooltip>
         <a-button-group>
           <a-tooltip
             placement="bottom"
-            title="选择录制窗口(默认主屏幕)刷新后选择"
+            title="选择录制窗口(新建或关闭窗口需刷新)"
           >
             <a-select
               class="ml-4 width-20"
@@ -65,10 +64,24 @@
             </a-button>
           </a-tooltip>
         </a-button-group>
+        <div class="ml-4 self-end" v-if="showAudioSwitch()">
+          <a-tooltip placement="bottom" title="声音开关">
+            <a-switch
+              v-model:checked="audioEnabled"
+              :disabled="isRecording || disableOperation"
+              @change="onAudioEnabled"
+            ></a-switch>
+            音频
+          </a-tooltip>
+        </div>
       </div>
       <a-button-group>
         <a-tooltip placement="bottom" title="选择录像保存目录">
-          <a-button @click="onSaveClick">保存位置</a-button>
+          <a-button
+            @click="onSaveClick"
+            :disabled="isRecording || disableOperation"
+            >保存位置</a-button
+          >
         </a-tooltip>
         <a-tooltip placement="bottom" title="打开录像目录">
           <a-button type="primary" @click="openVideoDir">
@@ -85,14 +98,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue"
-import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, putConfig, countDownTimer, errorText } from "./assets/recorder.js"
+import { ref, reactive, onMounted, computed, watch } from "vue"
+import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, countDownTimer, errorText, audioEnabled } from "./assets/recorder.js"
 import { SyncOutlined, FolderOpenOutlined } from '@ant-design/icons-vue';
 
 let selectValue = ref({ key: "screen:0:0" })
 let state = reactive({})
 let video = null;
 let countDown = ref(0);
+
+watch(errorText, (text, prevText) => {
+  document.hidden && utools?.showNotification(text, "lp")//隐藏窗口时弹出错误提示
+})
 
 const btnText = computed(() => {
   if (isRecording.value) {
@@ -134,7 +151,7 @@ const onDelayChange = (e) => {
   if (delay < 0 || isNaN(delay)) {
     return
   }
-  putConfig(delay)
+  utools?.dbStorage.setItem("delayStart", delay)
 }
 
 const onSaveClick = () => {
@@ -161,6 +178,15 @@ const onRefreshClick = () => {
     handleSelectChange(selectValue.value)//TODO 改变后不调用change
   })
 }
+
+const onAudioEnabled = () => {
+  console.log("onAudioEnabled")
+  utools?.dbStorage.setItem("audioEnabled", audioEnabled.value)
+  handleSelectChange(selectValue.value)
+}
+
+const showAudioSwitch = () => utools?.isWindows()
+
 
 const handleSelectChange = (value) => {
   console.log(value)
@@ -232,6 +258,10 @@ const handleSelectChange = (value) => {
 
 .flex {
   display: flex;
+}
+
+.self-end {
+  align-self: flex-end;
 }
 
 .justify-space-between {
