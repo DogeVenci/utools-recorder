@@ -11,4 +11,11 @@ export default defineConfig({
     }),
   ],
   base: "",
+  css: {
+    preprocessorOptions: {
+      less: {
+        javascriptEnabled: true,
+      },
+    },
+  },
 });

@@ -5,6 +5,7 @@ const fs = require("fs");
 window.desktopCapturer = desktopCapturer;
 
 let filePath = null;
+let fileName = "";
 
 Date.prototype.format = function (fmt) {
   var o = {
@@ -34,10 +35,8 @@ Date.prototype.format = function (fmt) {
 };
 
 const NewMediaFile = () => {
-  filePath = path.resolve(
-    getOutputDir(),
-    `${new Date().format("yyyyMMddhhmmss")}.webm`
-  );
+  fileName = `${new Date().format("yyyyMMddhhmmss")}.webm`;
+  filePath = path.resolve(getOutputDir(), fileName);
   return filePath;
 };
 
@@ -65,9 +64,11 @@ window.onbeforeunload = () => {
 };
 
 const getMediaFilePath = () => filePath;
+const getMediaFileName = () => fileName;
 
 window.mediaFile = {
   getMediaFilePath,
+  getMediaFileName,
   NewMediaFile,
   WriteMediaFile,
   CloseMediaFile,

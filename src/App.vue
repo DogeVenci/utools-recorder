@@ -109,18 +109,41 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from "vue"
-import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, countDownTimer, errorText, audioSource } from "./assets/recorder.js"
+import { ref, reactive, onMounted, computed, watch, h } from "vue"
+import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, countDownTimer, errorText, audioSource, infoText, savedFilePath } from "./assets/recorder.js"
 import { SyncOutlined, FolderOpenOutlined } from '@ant-design/icons-vue';
+import { notification } from 'ant-design-vue';
+import NotificationButton from "./components/NotificationButton.vue"
 
 let selectValue = ref({ key: "screen:0:0" })
 let state = reactive({ audioSources: [{ id: "system", name: "系统" }, { id: "mic", name: "麦克风输入" }, { id: "muted", name: "静音" }] })
 let video = null;
 let countDown = ref(0);
 
+// const message = inject('$message')
+
 watch(errorText, (text, prevText) => {
   document.hidden && utools?.showNotification(text, "lp")//隐藏窗口时弹出错误提示
 })
+
+watch(infoText, (text, prevText) => {
+  openNotification(text, "webm视频编码为h264无需重新编码，点击'转换格式'安装并使用ffmpeg插件重封装mp4。")
+})
+
+const openNotification = (title, description) => {
+  const key = `open${Date.now()}`;
+  notification.open({
+    message: title,
+    description,
+    placement: "topRight",
+    duration: 10,
+    onClick: () => {
+      console.log('Notification Clicked!');
+    },
+    btn: h(NotificationButton, { filePath: savedFilePath.value, onClick: () => { } }, null),
+    key
+  });
+}
 
 const btnText = computed(() => {
   if (isRecording.value) {

@@ -4,11 +4,14 @@ let mediaRecorder = null;
 let chunks = [];
 let interval = null;
 let curStream = null;
+let curPluginCode = "";
 
 export let isRecording = ref(false);
 export let disableOperation = ref(false);
 export let delayStart = ref(3);
 export let errorText = ref("");
+export let infoText = ref("");
+export let savedFilePath = ref("");
 export let audioSource = ref({ key: "system" });
 
 if (utools.isWindows()) {
@@ -134,7 +137,6 @@ export const startRecord = (stream) => {
     errorText.value = "startRecord failed: video source is ended";
     return;
   }
-  // utools.shellBeep();
   mediaRecorder = new MediaRecorder(stream, {
     mimeType: "video/webm; codecs=h264", //TODO 视频格式转换
   });
@@ -165,7 +167,10 @@ export const startRecord = (stream) => {
       const buffer = mediaFile.Buffer.from(await blob.arrayBuffer());
       mediaFile.WriteMediaFile(buffer);
     }
-    utools.shellShowItemInFolder(mediaFile.getMediaFilePath());
+    // curPluginCode == "tzlp" &&
+    //   utools.shellShowItemInFolder(mediaFile.getMediaFilePath());
+    infoText.value = `${mediaFile.getMediaFileName()} Saved`;
+    savedFilePath.value = mediaFile.getMediaFilePath();
     mediaRecorder = null;
     chunks = [];
     utools.shellBeep();
@@ -205,7 +210,6 @@ export const openVideoDir = () => {
 if (typeof utools != "undefined") {
   utools.onPluginReady(() => {
     delayStart.value = utools.dbStorage.getItem("delayStart") || 3;
-    console.log("onPluginReady:", delayStart.value);
 
     const audioConfig = utools.dbStorage.getItem("audioSource");
     if (audioConfig) {
@@ -217,9 +221,10 @@ if (typeof utools != "undefined") {
   });
 
   utools.onPluginEnter(({ code, type, payload }) => {
-    console.log(code, type, payload);
+    console.log("onPluginEnter:", code, type, payload);
+    curPluginCode = code;
     if (code === "kslp") {
-      utools.setExpendHeight(1);
+      // utools.setExpendHeight(1);
       if (curStream) {
         startRecord(curStream); //TODO 窗口关闭后需要刷新
         utools.hideMainWindow();
@@ -232,12 +237,13 @@ if (typeof utools != "undefined") {
         });
       }
     } else if (code === "tzlp") {
-      utools.setExpendHeight(0);
+      // utools.setExpendHeight(0);
       stopRecord();
-      utools.outPlugin();
-    } else {
-      utools.setExpendHeight(600);
+      // utools.outPlugin();
     }
+    // else {
+    //   utools.setExpendHeight(600);
+    // }
   });
 
   utools.onPluginOut(() => {
