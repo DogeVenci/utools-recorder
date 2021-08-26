@@ -4,7 +4,7 @@
 	"author": "Dovenci",
 	"main": "index.html",
 	"logo": "logo.png",
-	"version": "1.1.1",
+	"version": "1.1.2",
 	"preload":"preload.js",
 	"features": [
 	    {
@@ -21,6 +21,11 @@
 			"code":"tzlp",
 			"explain":"停止录屏",
 			"cmds":["停止录屏"]
+		},
+		{
+			"code":"ztlp",
+			"explain":"暂停或恢复录屏",
+			"cmds":["暂停恢复录屏"]
 		}
 	]
 }

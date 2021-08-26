@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import * as timer from "./timer.js";
 const timeslice = 5000;
 let mediaRecorder = null;
 let chunks = [];
@@ -6,24 +7,33 @@ let interval = null;
 let curStream = null;
 let curPluginCode = "";
 
-export let isRecording = ref(false);
 export let disableOperation = ref(false);
 export let delayStart = ref(3);
 export let errorText = ref("");
-export let infoText = ref("");
+export let savedText = ref("");
 export let savedFilePath = ref("");
 export let audioSource = ref({ key: "system" });
+export let recorderState = ref("inactive");
 
-if (utools.isWindows()) {
+if (window.utools && utools.isWindows()) {
   audioSource.value = { key: "system" };
 } else {
   audioSource.value = { key: "muted" };
 }
 
 export const getSources = async () => {
-  const sources = await desktopCapturer.getSources({
+  let sources = await desktopCapturer.getSources({
     types: ["screen", "window"],
+    thumbnailSize: { width: 0, height: 0 }, //设置为0节省用于获取每个窗口和屏幕内容时的处理时间
+    fetchWindowIcons: true, //尽可能获取图标
   });
+  //TODO 异常处理
+  sources = sources.filter(({ name }) => name != "uTools");
+  sources.forEach((source) => {
+    source.appIconURL = source.appIcon?.toDataURL();
+  });
+  console.log(sources);
+  //
   return sources;
 };
 
@@ -139,7 +149,9 @@ export const startRecord = (stream) => {
   }
   mediaRecorder = new MediaRecorder(stream, {
     mimeType: "video/webm; codecs=h264", //TODO 视频格式转换
+    // videoBitsPerSecond: 2.0e6, //比特率
   });
+
   mediaRecorder.ondataavailable = (event) => {
     if (event.data.size > 0) {
       chunks.push(event.data);
@@ -158,9 +170,12 @@ export const startRecord = (stream) => {
   };
   mediaRecorder.onstart = async () => {
     mediaFile.NewMediaFile();
-    isRecording.value = true;
+    recorderState.value = "recording";
+    timer.startCountTimer();
   };
   mediaRecorder.onstop = async () => {
+    recorderState.value = "inactive";
+    timer.stopCountTimer();
     if (chunks.length > 0) {
       //写入未完成的数据
       const blob = new Blob(chunks, { type: "video/webm; codecs=h264" });
@@ -169,19 +184,26 @@ export const startRecord = (stream) => {
     }
     // curPluginCode == "tzlp" &&
     //   utools.shellShowItemInFolder(mediaFile.getMediaFilePath());
-    infoText.value = `${mediaFile.getMediaFileName()} Saved`;
+    savedText.value = `${mediaFile.getMediaFileName()} Saved`;
     savedFilePath.value = mediaFile.getMediaFilePath();
     mediaRecorder = null;
     chunks = [];
     utools.shellBeep();
     mediaFile.CloseMediaFile();
-    isRecording.value = false;
   };
   mediaRecorder.onerror = (err) => {
+    recorderState.value = "inactive";
     console.log(err);
     errorText.value = err + "";
     clearCountDownTimer();
-    isRecording.value = false;
+  };
+  mediaRecorder.onpause = () => {
+    recorderState.value = "paused";
+    timer.pauseCountTimer();
+  };
+  mediaRecorder.onresume = () => {
+    recorderState.value = "recording";
+    timer.resumeCountTimer();
   };
 
   try {
@@ -194,7 +216,29 @@ export const startRecord = (stream) => {
 export const stopRecord = () => {
   clearCountDownTimer();
   if (!mediaRecorder) return;
+  if (mediaRecorder.state == "inactive") return;
   mediaRecorder.stop();
+};
+
+export const pauseRecord = () => {
+  if (!mediaRecorder) return;
+  if (mediaRecorder.state != "recording") return;
+  mediaRecorder.pause();
+};
+
+export const resumeRecord = () => {
+  if (!mediaRecorder) return;
+  if (mediaRecorder.state != "paused") return;
+  mediaRecorder.resume();
+};
+
+export const togglePause = () => {
+  const recState = getRecorderState();
+  if (recState == "paused") {
+    resumeRecord();
+  } else if (recState == "recording") {
+    pauseRecord();
+  }
 };
 
 export const getRecorderState = () => {
@@ -217,7 +261,7 @@ if (typeof utools != "undefined") {
     }
 
     utools.setSubInput((text) => {},
-    '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏"');
+    '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏" "暂停恢复录屏"');
   });
 
   utools.onPluginEnter(({ code, type, payload }) => {
@@ -240,6 +284,8 @@ if (typeof utools != "undefined") {
       // utools.setExpendHeight(0);
       stopRecord();
       // utools.outPlugin();
+    } else if (code === "ztlp") {
+      togglePause();
     }
     // else {
     //   utools.setExpendHeight(600);

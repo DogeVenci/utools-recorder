@@ -1,21 +1,40 @@
 <template>
   <div class="px-4">
     <a-alert
-      v-if="errorText.length"
+      v-if="errorText?.length"
       type="error"
       :message="errorText"
       banner
       closable
     />
+    <a-alert v-if="infoText?.length" :message="infoText" type="info" />
     <div class="py-4 flex justify-space-between">
       <div class="flex">
-        <a-button
-          type="primary"
-          id="switchBtn"
-          @click="onRecBtnClick"
-          :disabled="disableOperation"
-          >{{ btnText }}</a-button
-        >
+        <a-button-group>
+          <a-tooltip placement="bottom" title="开始或停止">
+            <a-button
+              id="switchBtn"
+              @click="onRecBtnClick"
+              :disabled="disableOperation"
+            >
+              <template #icon>
+                <RecordIcon v-if="recorderState == 'inactive'" />
+                <StopIcon v-else />
+              </template>
+            </a-button>
+          </a-tooltip>
+          <a-tooltip placement="bottom" title="暂停或恢复">
+            <a-button
+              @click="togglePause"
+              :disabled="recorderState == 'inactive'"
+            >
+              <template #icon>
+                <PlayIcon v-if="recorderState == 'paused'" />
+                <PauseIcon v-else />
+              </template>
+            </a-button>
+          </a-tooltip>
+        </a-button-group>
         <a-tooltip
           class="ml-3"
           placement="bottom"
@@ -28,8 +47,8 @@
             v-model:value="delayStart"
             @change="onDelayChange"
             :min="0"
-            :max="60"
-            :disabled="isRecording || disableOperation"
+            :max="10"
+            :disabled="recorderState != 'inactive' || disableOperation"
           />
         </a-tooltip>
         <a-button-group>
@@ -42,21 +61,30 @@
               label-in-value
               v-model:value="selectValue"
               @select="handleSelectChange"
-              :disabled="isRecording || disableOperation"
+              :disabled="recorderState != 'inactive' || disableOperation"
+              :options="videoOptions"
+              option-label-prop="label"
             >
-              <a-select-option
-                v-for="source in state.displaySources"
-                :key="source.id"
-                :value="source.id"
-                >{{ source.name }}</a-select-option
-              >
+              <template #option="{ label, icon }">
+                <a-image
+                  v-if="icon"
+                  :width="24"
+                  :height="24"
+                  :src="icon"
+                ></a-image>
+                <DesktopOutlined
+                  v-else
+                  style="width: 24px; height: 24px; font-size: 22px"
+                />
+                {{ label }}
+              </template>
             </a-select>
           </a-tooltip>
           <a-tooltip placement="bottom" title="刷新可选择窗口列表">
             <a-button
               type="primary"
               @click="onRefreshClick"
-              :disabled="isRecording || disableOperation"
+              :disabled="recorderState != 'inactive' || disableOperation"
             >
               <template #icon>
                 <SyncOutlined />
@@ -74,14 +102,16 @@
               label-in-value
               v-model:value="audioSource"
               @change="onAudioChange"
-              :disabled="isRecording || disableOperation"
+              :disabled="recorderState != 'inactive' || disableOperation"
+              :options="state.audioSources"
+              option-label-prop="label"
             >
-              <a-select-option
-                v-for="source in state.audioSources"
-                :key="source.id"
-                :value="source.id"
-                >{{ source.name }}</a-select-option
-              >
+              <template #option="{ value, label }">
+                <SoundOutlined v-if="value == 'system'" />
+                <AudioOutlined v-else-if="value == 'mic'" />
+                <AudioMutedOutlined v-else-if="value == 'muted'" />
+                {{ label }}
+              </template>
             </a-select>
           </a-tooltip>
         </div>
@@ -90,14 +120,17 @@
         <a-tooltip placement="bottom" title="选择录像保存目录">
           <a-button
             @click="onSaveClick"
-            :disabled="isRecording || disableOperation"
-            >保存位置</a-button
+            :disabled="recorderState != 'inactive' || disableOperation"
           >
-        </a-tooltip>
-        <a-tooltip placement="bottom" title="打开录像目录">
-          <a-button type="primary" @click="openVideoDir">
             <template #icon>
               <FolderOpenOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
+        <a-tooltip placement="bottom" title="打开录像目录">
+          <a-button @click="openVideoDir">
+            <template #icon>
+              <OpenIcon />
             </template>
           </a-button>
         </a-tooltip>
@@ -110,23 +143,35 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch, h } from "vue"
-import { getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord, isRecording, disableOperation, delayStart, countDownTimer, errorText, audioSource, infoText, savedFilePath } from "./assets/recorder.js"
-import { SyncOutlined, FolderOpenOutlined } from '@ant-design/icons-vue';
+import {
+  getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord,
+  disableOperation, delayStart, countDownTimer, errorText, audioSource, savedText, savedFilePath,
+  pauseRecord, resumeRecord, recorderState, togglePause
+} from "./assets/recorder.js"
+import { recordedTime } from "./assets/timer.js"
+
+import { SyncOutlined, FolderOpenOutlined, DesktopOutlined, PauseOutlined, SoundOutlined, AudioOutlined, AudioMutedOutlined } from '@ant-design/icons-vue';
+import PauseIcon from "./components/PauseIcon.vue";
+import PlayIcon from "./components/PlayIcon.vue";
+import RecordIcon from "./components/RecordIcon.vue";
+import StopIcon from "./components/StopIcon.vue";
+import OpenIcon from "./components/OpenIcon.vue";
 import { notification } from 'ant-design-vue';
 import NotificationButton from "./components/NotificationButton.vue"
 
 let selectValue = ref({ key: "screen:0:0" })
-let state = reactive({ audioSources: [{ id: "system", name: "系统" }, { id: "mic", name: "麦克风输入" }, { id: "muted", name: "静音" }] })
+let state = reactive({ audioSources: [{ value: "system", label: "系统" }, { value: "mic", label: "麦克风" }, { value: "muted", label: "静音" }] })
 let video = null;
 let countDown = ref(0);
 
 // const message = inject('$message')
 
 watch(errorText, (text, prevText) => {
+  stopRecord()
   document.hidden && utools?.showNotification(text, "lp")//隐藏窗口时弹出错误提示
 })
 
-watch(infoText, (text, prevText) => {
+watch(savedText, (text, prevText) => {
   openNotification(text, "webm视频编码为h264无需重新编码，点击'转换格式'安装并使用ffmpeg插件重封装mp4。")
 })
 
@@ -145,16 +190,25 @@ const openNotification = (title, description) => {
   });
 }
 
-const btnText = computed(() => {
-  if (isRecording.value) {
-    return "停止录制"
-  } else {
+const infoText = computed(() => {
+  if (recorderState.value == "recording") {
+    return "Recording " + recordedTime.value
+  } else if (recorderState.value == "paused") {
+    return "Paused " + recordedTime.value
+  }
+  else {
     if (disableOperation.value && countDown.value) {
-      return `准备(${countDown.value})`
+      return `Start record after ${countDown.value}s`
     } else {
-      return "开始录制"
+      return ""
     }
   }
+})
+
+const videoOptions = computed(() => {
+  return state.displaySources?.map(item => {
+    return { value: item.id, label: item.name, key: item.id, icon: item.appIconURL }
+  })
 })
 
 onMounted(() => {
@@ -193,7 +247,7 @@ const onDelayChange = (e) => {
 
 const onSaveClick = () => {
   const dirs = utools?.showOpenDialog({
-    title: '保存位置',
+    title: '选择保存目录',
     defaultPath: mediaFile.getOutputDir(),
     buttonLabel: '选择此目录',
     properties: [
@@ -250,25 +304,6 @@ const handleSelectChange = (value) => {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-.button {
-  border: none;
-  color: white;
-  padding: 15px 32px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.bg-green {
-  background-color: #4caf50; /* Green */
-}
-
-.bg-red {
-  background-color: #f44336;
 }
 
 .px-4 {
