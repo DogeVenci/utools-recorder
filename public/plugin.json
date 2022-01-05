@@ -4,7 +4,7 @@
 	"author": "Dovenci",
 	"main": "index.html",
 	"logo": "logo.png",
-	"version": "1.1.2",
+	"version": "1.1.3",
 	"preload":"preload.js",
 	"features": [
 	    {
