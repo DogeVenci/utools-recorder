@@ -172,7 +172,7 @@ watch(errorText, (text, prevText) => {
 })
 
 watch(savedText, (text, prevText) => {
-  openNotification(text, "webm视频编码为h264无需重新编码，点击'转换格式'安装并使用ffmpeg插件重封装mp4。")
+  openNotification(text, "点击'转换格式'安装并使用FFmpeg助手重封装mp4。")
 })
 
 const openNotification = (title, description) => {

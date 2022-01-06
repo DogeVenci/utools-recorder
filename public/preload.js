@@ -42,7 +42,6 @@ const NewMediaFile = () => {
 
 const WriteMediaFile = (data) => {
   if (!filePath) return;
-  // fs.writeFileSync(filePath, data);
   fs.appendFileSync(filePath, data);
 };
 

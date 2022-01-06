@@ -18,7 +18,6 @@ export const startCountTimer = () => {
   interval = setInterval(() => {
     recordSecond++;
     recordedTime.value = formatSecond(recordSecond);
-    console.log(recordedTime.value);
   }, 1000);
 };
 
