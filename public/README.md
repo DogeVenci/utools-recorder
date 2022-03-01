@@ -12,6 +12,9 @@ MacOS Linux 无法内录音频 可使用 soundFlower 或 blackHole 等虚拟声�
 
 ## changlog
 
+> ### 1.1.4(2022-03-01)
+> - 修改README 开源 https://github.com/DogeVenci/utools-recorder
+
 > ### 1.1.3(2021-08-26)
 
 > - 添加暂停和恢复录制功能
