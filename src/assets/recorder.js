@@ -22,7 +22,7 @@ if (window.utools && utools.isWindows()) {
 }
 
 export const getSources = async () => {
-  let sources = await desktopCapturer.getSources({
+  let sources = await utools.desktopCaptureSources({
     types: ["screen", "window"],
     thumbnailSize: { width: 0, height: 0 }, //设置为0节省用于获取每个窗口和屏幕内容时的处理时间
     fetchWindowIcons: true, //尽可能获取图标
