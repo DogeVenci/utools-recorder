@@ -1,5 +1,7 @@
 const path = require("path");
 const fs = require("fs");
+const { desktopCapturer } = require("electron");
+window.desktopCapturer = desktopCapturer; // 兼容utools 2.6.1 之前的版本
 
 let filePath = null;
 let fileName = "";
