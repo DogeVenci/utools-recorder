@@ -104,31 +104,6 @@ export const getStream = (source) => {
   }
 };
 
-export const countDownTimer = (seconds, finalFunc, countFunc) => {
-  const store = useStore();
-  if (seconds <= 0) {
-    typeof finalFunc == "function" && finalFunc();
-    return;
-  }
-  store.disableOperation = true;
-  let count = seconds;
-  if (interval) clearInterval(interval);
-  interval = setInterval(() => {
-    count--;
-    typeof countFunc == "function" && countFunc(count);
-    if (count <= 0) {
-      typeof finalFunc == "function" && finalFunc();
-      store.disableOperation = false;
-      clearInterval(interval);
-    }
-  }, 1000);
-};
-
-export const clearCountDownTimer = () => {
-  const store = useStore();
-  if (interval) clearInterval(interval);
-  store.disableOperation = false;
-};
 
 export const startRecord = (stream) => {
   if (mediaRecorder) return;
@@ -189,7 +164,7 @@ export const startRecord = (stream) => {
     store.recorderState = "inactive";
     console.log(err);
     store.errorText = err + "";
-    clearCountDownTimer();
+    timer.clearCountDownTimer();
   };
   mediaRecorder.onpause = () => {
     const store = useStore();
@@ -210,7 +185,7 @@ export const startRecord = (stream) => {
 };
 
 export const stopRecord = () => {
-  clearCountDownTimer();
+  timer.clearCountDownTimer();
   if (!mediaRecorder) return;
   if (mediaRecorder.state == "inactive") return;
   mediaRecorder.stop();

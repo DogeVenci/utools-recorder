@@ -149,12 +149,12 @@ const { errorText, savedText } = storeToRefs(store)
 
 import { ref, reactive, onMounted, computed, watch, h } from "vue"
 import {
-  getSources, getStream, getRecorderState, startRecord, stopRecord,countDownTimer,
+  getSources, getStream, getRecorderState, startRecord, stopRecord,
   pauseRecord, resumeRecord, togglePause
 } from "./assets/recorder.js"
 
 import { openVideoDir } from "./assets/plugin.js"
-import { recordedTime } from "./assets/timer.js"
+import { recordedTime, countDownTimer } from "./assets/timer.js"
 
 import { SyncOutlined, FolderOpenOutlined, DesktopOutlined, PauseOutlined, SoundOutlined, AudioOutlined, AudioMutedOutlined } from '@ant-design/icons-vue';
 import PauseIcon from "./components/PauseIcon.vue";
