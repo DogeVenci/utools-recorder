@@ -21,12 +21,34 @@ if (window.utools && utools.isWindows()) {
   audioSource.value = { key: "muted" };
 }
 
+const compareVersion = (v1, v2) => {
+  v1 = v1.split(".").map(Number);
+  v2 = v2.split(".").map(Number);
+  const minLen = v1.length > v2.length ? v2.length : v1.length;
+  for (let i = 0; i < minLen; i++) {
+    if (v1[i] === v2[i]) continue;
+    return v1[i] - v2[i];
+  }
+  return v1.length - v2.length;
+}
+  
+
 export const getSources = async () => {
-  let sources = await utools.desktopCaptureSources({
-    types: ["screen", "window"],
-    thumbnailSize: { width: 0, height: 0 }, //设置为0节省用于获取每个窗口和屏幕内容时的处理时间
-    fetchWindowIcons: true, //尽可能获取图标
-  });
+  let sources = [];
+  if (compareVersion(utools.getAppVersion(), "2.6.1") >= 0) {
+    sources = await utools.desktopCaptureSources({
+      types: ["screen", "window"],
+      thumbnailSize: { width: 0, height: 0 }, //设置为0节省用于获取每个窗口和屏幕内容时的处理时间
+      fetchWindowIcons: true, //尽可能获取图标
+    });
+  } else {
+    sources = await desktopCapturer.getSources({
+      types: ["screen", "window"],
+      thumbnailSize: { width: 0, height: 0 }, //设置为0节省用于获取每个窗口和屏幕内容时的处理时间
+      fetchWindowIcons: true, //尽可能获取图标
+    });
+  }
+  
   //TODO 异常处理
   sources = sources.filter(({ name }) => name != "uTools");
   sources.forEach((source) => {
@@ -253,6 +275,7 @@ export const openVideoDir = () => {
 // utools 事件
 if (typeof utools != "undefined") {
   utools.onPluginReady(() => {
+    
     delayStart.value = utools.dbStorage.getItem("delayStart") || 3;
 
     const audioConfig = utools.dbStorage.getItem("audioSource");
