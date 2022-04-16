@@ -1,27 +1,14 @@
-import { ref } from "vue";
+import { useStore } from "../store.js";
 import * as timer from "./timer.js";
+
 const timeslice = 5000;
 let mediaRecorder = null;
 let chunks = [];
 let interval = null;
-let curStream = null;
-let curPluginCode = "";
-
-export let disableOperation = ref(false);
-export let delayStart = ref(3);
-export let errorText = ref("");
-export let savedText = ref("");
-export let savedFilePath = ref("");
-export let audioSource = ref({ key: "system" });
-export let recorderState = ref("inactive");
-
-if (window.utools && utools.isWindows()) {
-  audioSource.value = { key: "system" };
-} else {
-  audioSource.value = { key: "muted" };
-}
+export let curStream = null;
 
 export const getSources = async () => {
+  if (!window.utools) return;
   let sources = await utools.desktopCaptureSources({
     types: ["screen", "window"],
     thumbnailSize: { width: 0, height: 0 }, //设置为0节省用于获取每个窗口和屏幕内容时的处理时间
@@ -38,6 +25,7 @@ export const getSources = async () => {
 };
 
 const getUserMediaBySystem = async (source, muted) => {
+  const store = useStore();
   let audio = {
     //TODO 无法获得音频设备得情况
     mandatory: {
@@ -63,18 +51,19 @@ const getUserMediaBySystem = async (source, muted) => {
       const videoTracks = curStream.getVideoTracks();
       if (videoTracks?.length > 0) {
         videoTracks[0].onended = () => {
-          errorText.value = Date.now() + " video source is ended";
+          store.errorText = Date.now() + " video source is ended";
         };
       }
       resolve(curStream);
     } catch (err) {
-      errorText.value = "" + err;
+      store.errorText = "" + err;
       reject(err);
     }
   });
 };
 
 const getUserMediaByMicphone = async (source) => {
+  const store = useStore();
   console.log("getUserMediaByMicphone");
   return new Promise(async (resolve, reject) => {
     try {
@@ -98,16 +87,17 @@ const getUserMediaByMicphone = async (source) => {
       ]);
       resolve(curStream);
     } catch (err) {
-      errorText.value = "" + err;
+      store.errorText = "" + err;
       reject(err);
     }
   });
 };
 
 export const getStream = (source) => {
-  if (audioSource.value.key == "mic") {
+  const store = useStore();
+  if (store.selectedAudioSource.key == "mic") {
     return getUserMediaByMicphone(source);
-  } else if (audioSource.value.key == "muted") {
+  } else if ((store.selectedAudioSource.key == "muted")) {
     return getUserMediaBySystem(source, true);
   } else {
     return getUserMediaBySystem(source, false);
@@ -115,11 +105,12 @@ export const getStream = (source) => {
 };
 
 export const countDownTimer = (seconds, finalFunc, countFunc) => {
+  const store = useStore();
   if (seconds <= 0) {
     typeof finalFunc == "function" && finalFunc();
     return;
   }
-  disableOperation.value = true;
+  store.disableOperation = true;
   let count = seconds;
   if (interval) clearInterval(interval);
   interval = setInterval(() => {
@@ -127,24 +118,26 @@ export const countDownTimer = (seconds, finalFunc, countFunc) => {
     typeof countFunc == "function" && countFunc(count);
     if (count <= 0) {
       typeof finalFunc == "function" && finalFunc();
-      disableOperation.value = false;
+      store.disableOperation = false;
       clearInterval(interval);
     }
   }, 1000);
 };
 
 export const clearCountDownTimer = () => {
+  const store = useStore();
   if (interval) clearInterval(interval);
-  disableOperation.value = false;
+  store.disableOperation = false;
 };
 
 export const startRecord = (stream) => {
   if (mediaRecorder) return;
   if (!stream) return;
   console.log("startRecord");
+  const store = useStore();
   const videoTracks = stream.getVideoTracks();
   if (videoTracks?.length > 0 && videoTracks[0].readyState == "ended") {
-    errorText.value = "startRecord failed: video source is ended";
+    store.errorText = "startRecord failed: video source is ended";
     return;
   }
   mediaRecorder = new MediaRecorder(stream, {
@@ -164,17 +157,19 @@ export const startRecord = (stream) => {
         })
         .catch((err) => {
           console.log(err);
-          errorText.value = err + "";
+          store.errorText = err + "";
         });
     }
   };
   mediaRecorder.onstart = async () => {
+    const store = useStore();
     mediaFile.NewMediaFile();
-    recorderState.value = "recording";
+    store.recorderState = "recording";
     timer.startCountTimer();
   };
   mediaRecorder.onstop = async () => {
-    recorderState.value = "inactive";
+    const store = useStore();
+    store.recorderState = "inactive";
     timer.stopCountTimer();
     if (chunks.length > 0) {
       //写入未完成的数据
@@ -182,34 +177,35 @@ export const startRecord = (stream) => {
       const buffer = mediaFile.Buffer.from(await blob.arrayBuffer());
       mediaFile.WriteMediaFile(buffer);
     }
-    // curPluginCode == "tzlp" &&
-    //   utools.shellShowItemInFolder(mediaFile.getMediaFilePath());
-    savedText.value = `${mediaFile.getMediaFileName()} Saved`;
-    savedFilePath.value = mediaFile.getMediaFilePath();
+    store.savedText = `${mediaFile.getMediaFileName()} Saved`;
+    store.savedFilePath = mediaFile.getMediaFilePath();
     mediaRecorder = null;
     chunks = [];
     utools.shellBeep();
     mediaFile.CloseMediaFile();
   };
   mediaRecorder.onerror = (err) => {
-    recorderState.value = "inactive";
+    const store = useStore();
+    store.recorderState = "inactive";
     console.log(err);
-    errorText.value = err + "";
+    store.errorText = err + "";
     clearCountDownTimer();
   };
   mediaRecorder.onpause = () => {
-    recorderState.value = "paused";
+    const store = useStore();
+    store.recorderState = "paused";
     timer.pauseCountTimer();
   };
   mediaRecorder.onresume = () => {
-    recorderState.value = "recording";
+    const store = useStore();
+    store.recorderState = "recording";
     timer.resumeCountTimer();
   };
 
   try {
     mediaRecorder.start(timeslice);
   } catch (err) {
-    errorText.value = "" + err;
+    store.errorText = "" + err;
   }
 };
 
@@ -245,54 +241,3 @@ export const getRecorderState = () => {
   if (mediaRecorder) return mediaRecorder.state;
   return "inactive";
 };
-
-export const openVideoDir = () => {
-  utools.shellOpenPath(mediaFile.getOutputDir());
-};
-
-// utools 事件
-if (typeof utools != "undefined") {
-  utools.onPluginReady(() => {
-    delayStart.value = utools.dbStorage.getItem("delayStart") || 3;
-
-    const audioConfig = utools.dbStorage.getItem("audioSource");
-    if (audioConfig) {
-      audioSource.value = { key: audioConfig };
-    }
-
-    utools.setSubInput((text) => {},
-    '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏" "暂停恢复录屏"');
-  });
-
-  utools.onPluginEnter(({ code, type, payload }) => {
-    console.log("onPluginEnter:", code, type, payload);
-    curPluginCode = code;
-    if (code === "kslp") {
-      // utools.setExpendHeight(1);
-      if (curStream) {
-        startRecord(curStream); //TODO 窗口关闭后需要刷新
-        utools.hideMainWindow();
-      } else {
-        getSources().then((sources) => {
-          getStream(sources[0]).then((stream) => {
-            startRecord(stream);
-            utools.hideMainWindow();
-          });
-        });
-      }
-    } else if (code === "tzlp") {
-      // utools.setExpendHeight(0);
-      stopRecord();
-      // utools.outPlugin();
-    } else if (code === "ztlp") {
-      togglePause();
-    }
-    // else {
-    //   utools.setExpendHeight(600);
-    // }
-  });
-
-  utools.onPluginOut(() => {
-    console.log("onPluginOut");
-  });
-}

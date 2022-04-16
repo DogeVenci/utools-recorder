@@ -1,5 +1,6 @@
 import { createApp } from "vue";
 import App from "./App.vue";
+import { createPinia } from "pinia";
 // import { message } from "ant-design-vue";
 // import "ant-design-vue/lib/message/style";
 import "ant-design-vue/lib/notification/style";
@@ -9,4 +10,4 @@ import "ant-design-vue/lib/notification/style";
 //   maxCount: 3, // 最大显示数, 超过限制时，最早的消息会被自动关闭
 // });
 
-createApp(App).mount("#app");
+createApp(App).use(createPinia()).mount("#app");
