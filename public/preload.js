@@ -1,8 +1,5 @@
-const { desktopCapturer } = require("electron");
 const path = require("path");
 const fs = require("fs");
-
-window.desktopCapturer = desktopCapturer;
 
 let filePath = null;
 let fileName = "";

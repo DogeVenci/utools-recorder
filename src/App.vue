@@ -1,9 +1,9 @@
 <template>
   <div class="px-4">
     <a-alert
-      v-if="errorText?.length"
+      v-if="store.errorText?.length"
       type="error"
-      :message="errorText"
+      :message="store.errorText"
       banner
       closable
     />
@@ -15,10 +15,10 @@
             <a-button
               id="switchBtn"
               @click="onRecBtnClick"
-              :disabled="disableOperation"
+              :disabled="store.disableOperation"
             >
               <template #icon>
-                <RecordIcon v-if="recorderState == 'inactive'" />
+                <RecordIcon v-if="store.recorderState == 'inactive'" />
                 <StopIcon v-else />
               </template>
             </a-button>
@@ -26,10 +26,10 @@
           <a-tooltip placement="bottom" title="暂停或恢复">
             <a-button
               @click="togglePause"
-              :disabled="recorderState == 'inactive'"
+              :disabled="store.recorderState == 'inactive'"
             >
               <template #icon>
-                <PlayIcon v-if="recorderState == 'paused'" />
+                <PlayIcon v-if="store.recorderState == 'paused'" />
                 <PauseIcon v-else />
               </template>
             </a-button>
@@ -44,11 +44,11 @@
           <a-input-number
             class="width-4"
             id="inputDelay"
-            v-model:value="delayStart"
+            v-model:value="store.delayStart"
             @change="onDelayChange"
             :min="0"
             :max="10"
-            :disabled="recorderState != 'inactive' || disableOperation"
+            :disabled="store.recorderState != 'inactive' || store.disableOperation"
           />
         </a-tooltip>
         <a-button-group>
@@ -59,10 +59,10 @@
             <a-select
               class="ml-3 width-20"
               label-in-value
-              v-model:value="selectValue"
+              v-model:value="store.selectedVideoSource"
               @select="handleSelectChange"
-              :disabled="recorderState != 'inactive' || disableOperation"
-              :options="videoOptions"
+              :disabled="store.recorderState != 'inactive' || store.disableOperation"
+              :options="store.videoOptions"
               option-label-prop="label"
             >
               <template #option="{ label, icon }">
@@ -84,7 +84,7 @@
             <a-button
               type="primary"
               @click="onRefreshClick"
-              :disabled="recorderState != 'inactive' || disableOperation"
+              :disabled="store.recorderState != 'inactive' || store.disableOperation"
             >
               <template #icon>
                 <SyncOutlined />
@@ -100,10 +100,10 @@
             <a-select
               class="width-8"
               label-in-value
-              v-model:value="audioSource"
+              v-model:value="store.selectedAudioSource"
               @change="onAudioChange"
-              :disabled="recorderState != 'inactive' || disableOperation"
-              :options="state.audioSources"
+              :disabled="store.recorderState != 'inactive' || store.disableOperation"
+              :options="audioSources"
               option-label-prop="label"
             >
               <template #option="{ value, label }">
@@ -120,7 +120,7 @@
         <a-tooltip placement="bottom" title="选择录像保存目录">
           <a-button
             @click="onSaveClick"
-            :disabled="recorderState != 'inactive' || disableOperation"
+            :disabled="store.recorderState != 'inactive' || store.disableOperation"
           >
             <template #icon>
               <FolderOpenOutlined />
@@ -137,18 +137,24 @@
       </a-button-group>
     </div>
     <div class="mb-4 border"></div>
-    <video id="video" class="width-100" muted></video>
+    <video id="video" ref="videoPreview" class="width-100" muted></video>
   </div>
 </template>
 
 <script setup>
+import { useStore } from './store.js'
+const store = useStore()
+import { storeToRefs } from 'pinia'
+const { errorText, savedText } = storeToRefs(store)
+
 import { ref, reactive, onMounted, computed, watch, h } from "vue"
 import {
-  getSources, getStream, openVideoDir, getRecorderState, startRecord, stopRecord,
-  disableOperation, delayStart, countDownTimer, errorText, audioSource, savedText, savedFilePath,
-  pauseRecord, resumeRecord, recorderState, togglePause
+  getSources, getStream, getRecorderState, startRecord, stopRecord,
+  pauseRecord, resumeRecord, togglePause
 } from "./assets/recorder.js"
-import { recordedTime } from "./assets/timer.js"
+
+import { openVideoDir } from "./assets/plugin.js"
+import { recordedTime, countDownTimer } from "./assets/timer.js"
 
 import { SyncOutlined, FolderOpenOutlined, DesktopOutlined, PauseOutlined, SoundOutlined, AudioOutlined, AudioMutedOutlined } from '@ant-design/icons-vue';
 import PauseIcon from "./components/PauseIcon.vue";
@@ -159,12 +165,9 @@ import OpenIcon from "./components/OpenIcon.vue";
 import { notification } from 'ant-design-vue';
 import NotificationButton from "./components/NotificationButton.vue"
 
-let selectValue = ref({ key: "screen:0:0" })
-let state = reactive({ audioSources: [{ value: "system", label: "系统" }, { value: "mic", label: "麦克风" }, { value: "muted", label: "静音" }] })
-let video = null;
+const audioSources = [{ value: "system", label: "系统" }, { value: "mic", label: "麦克风" }, { value: "muted", label: "静音" }];
+const videoPreview = ref(null);
 let countDown = ref(0);
-
-// const message = inject('$message')
 
 watch(errorText, (text, prevText) => {
   stopRecord()
@@ -185,19 +188,19 @@ const openNotification = (title, description) => {
     onClick: () => {
       console.log('Notification Clicked!');
     },
-    btn: h(NotificationButton, { filePath: savedFilePath.value, onClick: () => { } }, null),
+    btn: h(NotificationButton, { filePath: store.savedFilePath, onClick: () => { } }, null),
     key
   });
 }
 
 const infoText = computed(() => {
-  if (recorderState.value == "recording") {
+  if (store.recorderState == "recording") {
     return "Recording " + recordedTime.value
-  } else if (recorderState.value == "paused") {
+  } else if (store.recorderState == "paused") {
     return "Paused " + recordedTime.value
   }
   else {
-    if (disableOperation.value && countDown.value) {
+    if (store.disableOperation && countDown.value) {
       return `Start record after ${countDown.value}s`
     } else {
       return ""
@@ -205,31 +208,22 @@ const infoText = computed(() => {
   }
 })
 
-const videoOptions = computed(() => {
-  return state.displaySources?.map(item => {
-    return { value: item.id, label: item.name, key: item.id, icon: item.appIconURL }
-  })
-})
-
 onMounted(() => {
-  video = document.getElementById("video");//TODO
-  video.onloadedmetadata = (e) => video.play();
+  videoPreview.value.onloadedmetadata = (e) => videoPreview.value.play();
 })
 
 getSources().then(sources => {
-  state.displaySources = sources
-  selectValue.value = { key: sources[0].id }
+  if(!window.utools) return;
+  store.videoSources = sources
+  store.selectedVideoSource = { key: sources[0].id }
   getStream(sources[0]).then(stream => {
-    video.srcObject = stream;
-    // setTimeout(() => {
-    //   resizeWindow()
-    // }, 500)
+    videoPreview.value.srcObject = stream;
   })
 })
 
 const onRecBtnClick = () => {
   if (getRecorderState() == "inactive") {
-    countDownTimer(delayStart.value, () => startRecord(video.srcObject), (count) => {
+    countDownTimer(store.delayStart, () => startRecord(videoPreview.value.srcObject), (count) => {
       countDown.value = count
     })
   } else {
@@ -238,7 +232,7 @@ const onRecBtnClick = () => {
 }
 
 const onDelayChange = (e) => {
-  let delay = parseInt(delayStart.value)
+  let delay = parseInt(store.delayStart)
   if (delay < 0 || isNaN(delay)) {
     return
   }
@@ -264,16 +258,16 @@ const onSaveClick = () => {
 
 const onRefreshClick = () => {
   getSources().then(sources => {
-    state.displaySources = sources
-    selectValue.value = { key: sources[0].id }
-    handleSelectChange(selectValue.value)//TODO 改变后不调用change
+    store.videoSources = sources
+    store.selectedVideoSource = { key: sources[0].id }
+    handleSelectChange(store.selectedVideoSource)//TODO 改变后不调用change
   })
 }
 
 const onAudioChange = () => {
-  console.log(audioSource.value.key)
-  utools?.dbStorage.setItem("audioSource", audioSource.value.key)
-  handleSelectChange(selectValue.value)
+  console.log(store.selectedAudioSource.key)
+  utools?.dbStorage.setItem("audioSource", store.selectedAudioSource.key)
+  handleSelectChange(store.selectedVideoSource)
 }
 
 // const resizeWindow = () => {
@@ -283,9 +277,9 @@ const onAudioChange = () => {
 
 const handleSelectChange = (value) => {
   console.log(value)
-  const source = state.displaySources.filter(source => source.id == value.key)[0]
+  const source = store.videoSources.filter(source => source.id == value.key)[0]
   getStream(source).then(stream => {
-    video.srcObject = stream;
+    videoPreview.value.srcObject = stream;
     setTimeout(() => {
       // resizeWindow()
       utools?.showMainWindow();
