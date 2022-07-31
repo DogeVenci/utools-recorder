@@ -4,6 +4,7 @@
 </template>
 
 <script>
+import { useStore } from '../store.js'
 export default {
   props: {
     filePath: { type: String, required: true },
@@ -14,12 +15,23 @@ export default {
       window?.utools?.shellShowItemInFolder(this.filePath);
       this.onClick()
     },
+    async toMP4() {
+      const runFFmpeg = window.runFFmpeg
+      const store = useStore()
+      store.loading = true
+      setTimeout(() => {
+        runFFmpeg(store.savedFilePath).then((filepath) => {
+          window?.utools?.shellShowItemInFolder(filepath);
+        }).catch(err => {
+          store.errorText = "转换格式失败"
+        }).finally(() => {
+          store.loading = false
+        })
+      }, 500)
+    },
     redirect() {
-      window?.utools?.redirect("ffmpeg", {
-        type: "files",
-        data: this.filePath,
-      });
       this.onClick()
+      this.toMP4()
     }
   }
 }

@@ -13,7 +13,8 @@ export const useStore = defineStore("main", {
       disableOperation: false,
       errorText: "",
       savedText: "",
-      savedFilePath: ""
+      savedFilePath: "",
+      loading: false,
     };
   },
   getters: {

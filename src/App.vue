@@ -1,143 +1,89 @@
 <template>
   <div class="px-4">
-    <a-alert
-      v-if="store.errorText?.length"
-      type="error"
-      :message="store.errorText"
-      banner
-      closable
-    />
+    <a-alert v-if="store.errorText?.length" type="error" :message="store.errorText" banner closable />
     <a-alert v-if="infoText?.length" :message="infoText" type="info" />
-    <div class="py-4 flex justify-space-between">
-      <div class="flex">
-        <a-button-group>
-          <a-tooltip placement="bottom" title="开始或停止">
-            <a-button
-              id="switchBtn"
-              @click="onRecBtnClick"
-              :disabled="store.disableOperation"
-            >
-              <template #icon>
-                <RecordIcon v-if="store.recorderState == 'inactive'" />
-                <StopIcon v-else />
-              </template>
-            </a-button>
+    <a-spin tip="格式转换中..." size="large" :spinning="store.loading">
+      <div class="py-4 flex justify-space-between">
+        <div class="flex">
+          <a-button-group>
+            <a-tooltip placement="bottom" title="开始或停止">
+              <a-button id="switchBtn" @click="onRecBtnClick" :disabled="store.disableOperation">
+                <template #icon>
+                  <RecordIcon v-if="store.recorderState == 'inactive'" />
+                  <StopIcon v-else />
+                </template>
+              </a-button>
+            </a-tooltip>
+            <a-tooltip placement="bottom" title="暂停或恢复">
+              <a-button @click="togglePause" :disabled="store.recorderState == 'inactive'">
+                <template #icon>
+                  <PlayIcon v-if="store.recorderState == 'paused'" />
+                  <PauseIcon v-else />
+                </template>
+              </a-button>
+            </a-tooltip>
+          </a-button-group>
+          <a-tooltip class="ml-3" placement="bottom" title="快捷键开始不受此影响 0s不延迟">
+            延迟
+            <a-input-number class="width-4" id="inputDelay" v-model:value="store.delayStart" @change="onDelayChange"
+              :min="0" :max="10" :disabled="store.recorderState != 'inactive' || store.disableOperation" />
           </a-tooltip>
-          <a-tooltip placement="bottom" title="暂停或恢复">
-            <a-button
-              @click="togglePause"
-              :disabled="store.recorderState == 'inactive'"
-            >
-              <template #icon>
-                <PlayIcon v-if="store.recorderState == 'paused'" />
-                <PauseIcon v-else />
-              </template>
-            </a-button>
-          </a-tooltip>
-        </a-button-group>
-        <a-tooltip
-          class="ml-3"
-          placement="bottom"
-          title="快捷键开始不受此影响 0s不延迟"
-        >
-          延迟
-          <a-input-number
-            class="width-4"
-            id="inputDelay"
-            v-model:value="store.delayStart"
-            @change="onDelayChange"
-            :min="0"
-            :max="10"
-            :disabled="store.recorderState != 'inactive' || store.disableOperation"
-          />
-        </a-tooltip>
-        <a-button-group>
-          <a-tooltip
-            placement="bottom"
-            title="选择录制窗口(新建或关闭窗口需刷新)"
-          >
-            <a-select
-              class="ml-3 width-20"
-              label-in-value
-              v-model:value="store.selectedVideoSource"
-              @select="handleSelectChange"
-              :disabled="store.recorderState != 'inactive' || store.disableOperation"
-              :options="store.videoOptions"
-              option-label-prop="label"
-            >
-              <template #option="{ label, icon }">
-                <a-image
-                  v-if="icon"
-                  :width="24"
-                  :height="24"
-                  :src="icon"
-                ></a-image>
-                <DesktopOutlined
-                  v-else
-                  style="width: 24px; height: 24px; font-size: 22px"
-                />
-                {{ label }}
-              </template>
-            </a-select>
-          </a-tooltip>
-          <a-tooltip placement="bottom" title="刷新可选择窗口列表">
-            <a-button
-              type="primary"
-              @click="onRefreshClick"
-              :disabled="store.recorderState != 'inactive' || store.disableOperation"
-            >
-              <template #icon>
-                <SyncOutlined />
-              </template>
-            </a-button>
-          </a-tooltip>
-        </a-button-group>
-        <div class="ml-3 self-end">
-          <a-tooltip
-            placement="bottom"
-            title="选择音频输入 Mac和Linux不支持系统内录 麦克风输入部分支持"
-          >
-            <a-select
-              class="width-8"
-              label-in-value
-              v-model:value="store.selectedAudioSource"
-              @change="onAudioChange"
-              :disabled="store.recorderState != 'inactive' || store.disableOperation"
-              :options="audioSources"
-              option-label-prop="label"
-            >
-              <template #option="{ value, label }">
-                <SoundOutlined v-if="value == 'system'" />
-                <AudioOutlined v-else-if="value == 'mic'" />
-                <AudioMutedOutlined v-else-if="value == 'muted'" />
-                {{ label }}
-              </template>
-            </a-select>
-          </a-tooltip>
+          <a-button-group>
+            <a-tooltip placement="bottom" title="选择录制窗口(新建或关闭窗口需刷新)">
+              <a-select class="ml-3 width-20" label-in-value v-model:value="store.selectedVideoSource"
+                @select="handleSelectChange" :disabled="store.recorderState != 'inactive' || store.disableOperation"
+                :options="store.videoOptions" option-label-prop="label">
+                <template #option="{ label, icon }">
+                  <a-image v-if="icon" :width="24" :height="24" :src="icon"></a-image>
+                  <DesktopOutlined v-else style="width: 24px; height: 24px; font-size: 22px" />
+                  {{ label }}
+                </template>
+              </a-select>
+            </a-tooltip>
+            <a-tooltip placement="bottom" title="刷新可选择窗口列表">
+              <a-button type="primary" @click="onRefreshClick"
+                :disabled="store.recorderState != 'inactive' || store.disableOperation">
+                <template #icon>
+                  <SyncOutlined />
+                </template>
+              </a-button>
+            </a-tooltip>
+          </a-button-group>
+          <div class="ml-3 self-end">
+            <a-tooltip placement="bottom" title="选择音频输入 Mac和Linux不支持系统内录 麦克风输入部分支持">
+              <a-select class="width-8" label-in-value v-model:value="store.selectedAudioSource" @change="onAudioChange"
+                :disabled="store.recorderState != 'inactive' || store.disableOperation" :options="audioSources"
+                option-label-prop="label">
+                <template #option="{ value, label }">
+                  <SoundOutlined v-if="value == 'system'" />
+                  <AudioOutlined v-else-if="value == 'mic'" />
+                  <AudioMutedOutlined v-else-if="value == 'muted'" />
+                  {{ label }}
+                </template>
+              </a-select>
+            </a-tooltip>
+          </div>
         </div>
+        <a-button-group>
+          <a-tooltip placement="bottom" title="选择录像保存目录">
+            <a-button @click="onSaveClick" :disabled="store.recorderState != 'inactive' || store.disableOperation">
+              <template #icon>
+                <FolderOpenOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
+          <a-tooltip placement="bottom" title="打开录像目录">
+            <a-button @click="openVideoDir">
+              <template #icon>
+                <OpenIcon />
+              </template>
+            </a-button>
+          </a-tooltip>
+        </a-button-group>
       </div>
-      <a-button-group>
-        <a-tooltip placement="bottom" title="选择录像保存目录">
-          <a-button
-            @click="onSaveClick"
-            :disabled="store.recorderState != 'inactive' || store.disableOperation"
-          >
-            <template #icon>
-              <FolderOpenOutlined />
-            </template>
-          </a-button>
-        </a-tooltip>
-        <a-tooltip placement="bottom" title="打开录像目录">
-          <a-button @click="openVideoDir">
-            <template #icon>
-              <OpenIcon />
-            </template>
-          </a-button>
-        </a-tooltip>
-      </a-button-group>
-    </div>
-    <div class="mb-4 border"></div>
-    <video id="video" ref="videoPreview" class="width-100" muted></video>
+      <div class="mb-4 border"></div>
+      <video id="video" ref="videoPreview" class="width-100" muted></video>
+    </a-spin>
   </div>
 </template>
 
@@ -175,21 +121,25 @@ watch(errorText, (text, prevText) => {
 })
 
 watch(savedText, (text, prevText) => {
-  openNotification(text, "点击'转换格式'安装并使用FFmpeg助手重封装mp4。")
+  openNotification(text, "点击'转换格式'转换成mp4格式。")
 })
 
 const openNotification = (title, description) => {
-  const key = `open${Date.now()}`;
+  const key = `notify`;
   notification.open({
     message: title,
     description,
     placement: "topRight",
     duration: 10,
-    onClick: () => {
-      console.log('Notification Clicked!');
+    onClose: () => {
     },
-    btn: h(NotificationButton, { filePath: store.savedFilePath, onClick: () => { } }, null),
-    key
+    btn: () => h(NotificationButton, {
+      filePath: store.savedFilePath,
+      onClick: () => {
+        notification.close("notify");
+      }
+    }, null),
+    key,
   });
 }
 
@@ -213,7 +163,7 @@ onMounted(() => {
 })
 
 getSources().then(sources => {
-  if(!window.utools) return;
+  if (!window.utools) return;
   store.videoSources = sources
   store.selectedVideoSource = { key: sources[0].id }
   getStream(sources[0]).then(stream => {

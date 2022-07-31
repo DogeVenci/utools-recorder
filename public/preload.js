@@ -1,7 +1,59 @@
 const path = require("path");
 const fs = require("fs");
 const { desktopCapturer } = require("electron");
+const ffmpeg = require("./ffmpeg-mp4.js");
 window.desktopCapturer = desktopCapturer; // 兼容utools 2.6.1 之前的版本
+
+const runFFmpeg = async (filepath) => {
+  const pathname = path.dirname(filepath);
+  const filename = path.basename(filepath);
+  const basename = path.basename(filename, path.extname(filepath));
+  console.log("runFFmpeg pathname:", pathname);
+  console.log("runFFmpeg filename:", filename);
+  let stdout = "";
+  let stderr = "";
+  return new Promise((resolve, reject) => { 
+    ffmpeg({
+      mounts: [
+        { type: "NODEFS", opts: { root: pathname }, mountpoint: "/data" },
+      ],
+      arguments: [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        `/data/${filename}`,
+        "-c:v",
+        "copy",
+        "-c:a",
+        "copy",
+        "-strict",
+        "-2",
+        "-f",
+        "mp4",
+        "-y",
+        `/data/${basename}.mp4`,
+      ],
+      print: function (data) {
+        stdout += data + "\n";
+      },
+      printErr: function (data) {
+        stderr += data + "\n";
+      },
+      onExit: function (code) {
+        console.log("Process exited with code " + code);
+        console.log(stdout);
+        console.log(stderr);
+        if (code === 0) {
+          resolve(`${pathname}/${basename}.mp4`);
+        }else {
+          reject(stderr);
+        }
+      },
+    });
+  })
+};
+window.runFFmpeg = runFFmpeg;
 
 let filePath = null;
 let fileName = "";

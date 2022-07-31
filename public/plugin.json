@@ -27,8 +27,5 @@
 			"explain":"暂停或恢复录屏",
 			"cmds":["暂停恢复录屏"]
 		}
-	],
-	"development":{
-		"main": "http://127.0.0.1:3000/index.html"
-	}
+	]
 }
