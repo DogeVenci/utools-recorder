@@ -29,8 +29,6 @@ const runFFmpeg = async (filepath) => {
         "copy",
         "-strict",
         "-2",
-        "-f",
-        "mp4",
         "-y",
         `/data/${basename}.mp4`,
       ],
@@ -45,8 +43,8 @@ const runFFmpeg = async (filepath) => {
         console.log(stdout);
         console.log(stderr);
         if (code === 0) {
-          resolve(`${pathname}/${basename}.mp4`);
-        }else {
+          resolve(path.join(pathname, `${basename}.mp4`));
+        } else {
           reject(stderr);
         }
       },
