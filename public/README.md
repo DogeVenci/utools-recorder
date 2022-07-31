@@ -11,6 +11,8 @@
 MacOS Linux 无法内录音频 可使用 soundFlower 或 blackHole 等虚拟声卡软件转录到 mic
 
 ## changlog
+> ### 1.2.0(2022-07-31)
+> - 添加FFmpeg wasm 转码MP4
 
 > ### 1.1.4(2022-03-01)
 > - 修改README 开源 https://github.com/DogeVenci/utools-recorder

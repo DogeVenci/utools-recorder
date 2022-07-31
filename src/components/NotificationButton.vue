@@ -1,5 +1,5 @@
 <template>
-  <a-button type="primary" @click="open"> 打开目录 </a-button>
+  <a-button @click="open"> 打开目录 </a-button>
   <a-button class="ml-4" type="primary" @click="redirect"> 转换格式 </a-button>
 </template>
 
