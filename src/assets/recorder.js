@@ -16,7 +16,7 @@ const compareVersion = (v1, v2) => {
   }
   return v1.length - v2.length;
 }
-  
+
 
 export const getSources = async () => {
   let sources = [];
@@ -33,7 +33,7 @@ export const getSources = async () => {
       fetchWindowIcons: true, //尽可能获取图标
     });
   }
-  
+
   //TODO 异常处理
   sources = sources.filter(({ name }) => name != "uTools");
   sources.forEach((source) => {
@@ -112,6 +112,46 @@ const getUserMediaByMicphone = async (source) => {
     }
   });
 };
+
+const getUserMediaMerge = async () => {
+  const store = useStore();
+  return new Promise(async (resolve, reject) => {
+    try {
+      const micStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+
+      const screenVideoStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: "desktop",
+            chromeMediaSourceId: source.id,
+          },
+        },
+      });
+
+      const screenAudioStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: {
+          mandatory: {
+            chromeMediaSource: "desktop",
+          },
+        }
+      })
+
+      curStream = new MediaStream([
+        ...screenVideoStream.getVideoTracks(),
+        ...screenAudioStream.getAudioTracks(),
+        ...micStream.getAudioTracks()
+      ]);
+      resolve(curStream);
+    } catch (e) {
+      store.errorText = "" + err;
+      reject(err);
+    }
+  })
+}
 
 export const getStream = (source) => {
   const store = useStore();
