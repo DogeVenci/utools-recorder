@@ -1,13 +1,23 @@
 <template>
   <div class="px-4">
-    <a-alert v-if="store.errorText?.length" type="error" :message="store.errorText" banner closable />
+    <a-alert
+      v-if="store.errorText?.length"
+      type="error"
+      :message="store.errorText"
+      banner
+      closable
+    />
     <a-alert v-if="infoText?.length" :message="infoText" type="info" />
     <a-spin tip="格式转换中..." size="large" :spinning="store.loading">
       <div class="py-4 flex justify-space-between">
         <div class="flex">
           <a-button-group>
             <a-tooltip placement="bottom" title="开始或停止">
-              <a-button id="switchBtn" @click="onRecBtnClick" :disabled="store.disableOperation">
+              <a-button
+                id="switchBtn"
+                @click="onRecBtnClick"
+                :disabled="store.disableOperation"
+              >
                 <template #icon>
                   <RecordIcon v-if="store.recorderState == 'inactive'" />
                   <StopIcon v-else />
@@ -15,7 +25,10 @@
               </a-button>
             </a-tooltip>
             <a-tooltip placement="bottom" title="暂停或恢复">
-              <a-button @click="togglePause" :disabled="store.recorderState == 'inactive'">
+              <a-button
+                @click="togglePause"
+                :disabled="store.recorderState == 'inactive'"
+              >
                 <template #icon>
                   <PlayIcon v-if="store.recorderState == 'paused'" />
                   <PauseIcon v-else />
@@ -23,26 +36,63 @@
               </a-button>
             </a-tooltip>
           </a-button-group>
-          <a-tooltip class="ml-3" placement="bottom" title="快捷键开始不受此影响 0s不延迟">
+          <a-tooltip
+            class="ml-3"
+            placement="bottom"
+            title="快捷键开始不受此影响 0s不延迟"
+          >
             延迟
-            <a-input-number class="width-4" id="inputDelay" v-model:value="store.delayStart" @change="onDelayChange"
-              :min="0" :max="10" :disabled="store.recorderState != 'inactive' || store.disableOperation" />
+            <a-input-number
+              class="width-4"
+              id="inputDelay"
+              v-model:value="store.delayStart"
+              @change="onDelayChange"
+              :min="0"
+              :max="10"
+              :disabled="
+                store.recorderState != 'inactive' || store.disableOperation
+              "
+            />
           </a-tooltip>
           <a-button-group>
-            <a-tooltip placement="bottom" title="选择录制窗口(新建或关闭窗口需刷新)">
-              <a-select class="ml-3 width-20" label-in-value v-model:value="store.selectedVideoSource"
-                @select="handleSelectChange" :disabled="store.recorderState != 'inactive' || store.disableOperation"
-                :options="store.videoOptions" option-label-prop="label">
+            <a-tooltip
+              placement="bottom"
+              title="选择录制窗口(新建或关闭窗口需刷新)"
+            >
+              <a-select
+                class="ml-3 width-20"
+                label-in-value
+                v-model:value="store.selectedVideoSource"
+                @select="handleSelectChange"
+                :disabled="
+                  store.recorderState != 'inactive' || store.disableOperation
+                "
+                :options="store.videoOptions"
+                option-label-prop="label"
+              >
                 <template #option="{ label, icon }">
-                  <a-image v-if="icon" :width="24" :height="24" :src="icon"></a-image>
-                  <DesktopOutlined v-else style="width: 24px; height: 24px; font-size: 22px" />
+                  <a-image
+                    v-if="icon"
+                    :width="24"
+                    :height="24"
+                    :src="icon"
+                  ></a-image>
+                  <DesktopOutlined
+                    v-else
+                    style="width: 24px; height: 24px; font-size: 22px"
+                  />
                   {{ label }}
                 </template>
               </a-select>
             </a-tooltip>
             <a-tooltip placement="bottom" title="刷新可选择窗口列表">
-              <a-button type="primary" @click="onRefreshClick"
-                :disabled="store.recorderState != 'inactive' || store.disableOperation">
+              <a-button
+                type="primary"
+                @click="onRefreshClick"
+                :disabled="
+                  store.recorderState != 'inactive' || store.disableOperation
+                "
+              >
                 <template #icon>
                   <SyncOutlined />
                 </template>
@@ -50,23 +100,47 @@
             </a-tooltip>
           </a-button-group>
           <div class="ml-3 self-end">
-            <a-tooltip placement="bottom" title="选择音频输入 Mac和Linux不支持系统内录 麦克风输入部分支持">
-              <a-select class="width-8" label-in-value v-model:value="store.selectedAudioSource" @change="onAudioChange"
-                :disabled="store.recorderState != 'inactive' || store.disableOperation" :options="audioSources"
-                option-label-prop="label">
-                <template #option="{ value, label }">
-                  <SoundOutlined v-if="value == 'system'" />
-                  <AudioOutlined v-else-if="value == 'mic'" />
-                  <AudioMutedOutlined v-else-if="value == 'muted'" />
-                  {{ label }}
-                </template>
-              </a-select>
-            </a-tooltip>
+            <a-button-group>
+              <a-tooltip
+                placement="bottom"
+                title="系统声音 Mac和Linux不支持系统内录"
+              >
+                <a-button
+                  @click="onRecSysAudioClick"
+                  :type="store.hasSysAudio ? 'primary' : 'default'"
+                  :disabled="
+                    store.recorderState != 'inactive' || store.disableOperation
+                  "
+                >
+                  <template #icon>
+                    <SoundOutlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip placement="bottom" title="主麦克风声音">
+                <a-button
+                  @click="onRecMicAudioClick"
+                  :type="store.hasMicAudio ? 'primary' : 'default'"
+                  :disabled="
+                    store.recorderState != 'inactive' || store.disableOperation
+                  "
+                >
+                  <template #icon>
+                    <AudioOutlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
+            </a-button-group>
           </div>
         </div>
         <a-button-group>
           <a-tooltip placement="bottom" title="选择录像保存目录">
-            <a-button @click="onSaveClick" :disabled="store.recorderState != 'inactive' || store.disableOperation">
+            <a-button
+              @click="onSaveClick"
+              :disabled="
+                store.recorderState != 'inactive' || store.disableOperation
+              "
+            >
               <template #icon>
                 <FolderOpenOutlined />
               </template>
@@ -88,41 +162,54 @@
 </template>
 
 <script setup>
-import { useStore } from './store.js'
-const store = useStore()
-import { storeToRefs } from 'pinia'
-const { errorText, savedText } = storeToRefs(store)
+import { useStore } from "./store.js";
+const store = useStore();
+import { storeToRefs } from "pinia";
+const { errorText, savedText } = storeToRefs(store);
 
-import { ref, reactive, onMounted, computed, watch, h } from "vue"
+import { ref, reactive, onMounted, computed, watch, h } from "vue";
 import {
-  getSources, getStream, getRecorderState, startRecord, stopRecord,
-  pauseRecord, resumeRecord, togglePause
-} from "./assets/recorder.js"
+  getSources,
+  getStream,
+  getRecorderState,
+  startRecord,
+  stopRecord,
+  pauseRecord,
+  resumeRecord,
+  togglePause,
+} from "./assets/recorder.js";
 
-import { openVideoDir } from "./assets/plugin.js"
-import { recordedTime, countDownTimer } from "./assets/timer.js"
+import { openVideoDir } from "./assets/plugin.js";
+import { recordedTime, countDownTimer } from "./assets/timer.js";
 
-import { SyncOutlined, FolderOpenOutlined, DesktopOutlined, PauseOutlined, SoundOutlined, AudioOutlined, AudioMutedOutlined } from '@ant-design/icons-vue';
+import {
+  SyncOutlined,
+  FolderOpenOutlined,
+  DesktopOutlined,
+  PauseOutlined,
+  SoundOutlined,
+  AudioOutlined,
+  AudioMutedOutlined,
+} from "@ant-design/icons-vue";
 import PauseIcon from "./components/PauseIcon.vue";
 import PlayIcon from "./components/PlayIcon.vue";
 import RecordIcon from "./components/RecordIcon.vue";
 import StopIcon from "./components/StopIcon.vue";
 import OpenIcon from "./components/OpenIcon.vue";
-import { notification } from 'ant-design-vue';
-import NotificationButton from "./components/NotificationButton.vue"
+import { notification } from "ant-design-vue";
+import NotificationButton from "./components/NotificationButton.vue";
 
-const audioSources = [{ value: "system", label: "系统" }, { value: "mic", label: "麦克风" }, { value: "muted", label: "静音" }];
 const videoPreview = ref(null);
 let countDown = ref(0);
 
 watch(errorText, (text, prevText) => {
-  stopRecord()
-  document.hidden && utools?.showNotification(text, "lp")//隐藏窗口时弹出错误提示
-})
+  stopRecord();
+  document.hidden && utools?.showNotification(text, "lp"); //隐藏窗口时弹出错误提示
+});
 
 watch(savedText, (text, prevText) => {
-  openNotification(text, "点击'转换格式'转换成mp4格式。")
-})
+  openNotification(text, "点击'转换格式'转换成mp4格式。");
+});
 
 const openNotification = (title, description) => {
   const key = `notify`;
@@ -131,94 +218,122 @@ const openNotification = (title, description) => {
     description,
     placement: "topRight",
     duration: 10,
-    onClose: () => {
-    },
-    btn: () => h(NotificationButton, {
-      filePath: store.savedFilePath,
-      onClick: () => {
-        notification.close("notify");
-      }
-    }, null),
+    onClose: () => {},
+    btn: () =>
+      h(
+        NotificationButton,
+        {
+          filePath: store.savedFilePath,
+          onClick: () => {
+            notification.close("notify");
+          },
+        },
+        null
+      ),
     key,
   });
-}
+};
 
 const infoText = computed(() => {
   if (store.recorderState == "recording") {
-    return "Recording " + recordedTime.value
+    return "Recording " + recordedTime.value;
   } else if (store.recorderState == "paused") {
-    return "Paused " + recordedTime.value
-  }
-  else {
+    return "Paused " + recordedTime.value;
+  } else {
     if (store.disableOperation && countDown.value) {
-      return `Start record after ${countDown.value}s`
+      return `Start record after ${countDown.value}s`;
     } else {
-      return ""
+      return "";
     }
   }
-})
+});
 
 onMounted(() => {
   videoPreview.value.onloadedmetadata = (e) => videoPreview.value.play();
-})
+});
 
-getSources().then(sources => {
+getSources().then((sources) => {
   if (!window.utools) return;
-  store.videoSources = sources
-  store.selectedVideoSource = { key: sources[0].id }
-  getStream(sources[0]).then(stream => {
+  store.videoSources = sources;
+  store.selectedVideoSource = { key: sources[0].id };
+  getStream(sources[0]).then((stream) => {
     videoPreview.value.srcObject = stream;
-  })
-})
+  });
+});
 
 const onRecBtnClick = () => {
   if (getRecorderState() == "inactive") {
-    countDownTimer(store.delayStart, () => startRecord(videoPreview.value.srcObject), (count) => {
-      countDown.value = count
-    })
+    countDownTimer(
+      store.delayStart,
+      () => startRecord(videoPreview.value.srcObject),
+      (count) => {
+        countDown.value = count;
+      }
+    );
   } else {
-    stopRecord()
+    stopRecord();
   }
-}
+};
+
+const onRecSysAudioClick = () => {
+  let idx = store.audioSources.findIndex((item) => item == "system");
+  if (idx !== -1) {
+    store.audioSources.splice(idx, 1);
+  } else {
+    store.audioSources.push("system");
+  }
+
+  onAudioChange();
+};
+
+const onRecMicAudioClick = () => {
+  let idx = store.audioSources.findIndex((item) => item == "mic");
+  if (idx !== -1) {
+    store.audioSources.splice(idx, 1);
+  } else {
+    store.audioSources.push("mic");
+  }
+  onAudioChange();
+};
 
 const onDelayChange = (e) => {
-  let delay = parseInt(store.delayStart)
+  let delay = parseInt(store.delayStart);
   if (delay < 0 || isNaN(delay)) {
-    return
+    return;
   }
-  utools?.dbStorage.setItem("delayStart", delay)
-}
+  utools?.dbStorage.setItem("delayStart", delay);
+};
 
 const onSaveClick = () => {
   const dirs = utools?.showOpenDialog({
-    title: '选择保存目录',
+    title: "选择保存目录",
     defaultPath: mediaFile.getOutputDir(),
-    buttonLabel: '选择此目录',
+    buttonLabel: "选择此目录",
     properties: [
       "openDirectory",
       "createDirectory",
       "dontAddToRecent",
-      "treatPackageAsDirectory"
-    ]
-  })
+      "treatPackageAsDirectory",
+    ],
+  });
   if (dirs?.length && dirs[0]?.length) {
-    mediaFile.setOutputDir(dirs[0])
+    mediaFile.setOutputDir(dirs[0]);
   }
-}
+};
 
 const onRefreshClick = () => {
-  getSources().then(sources => {
-    store.videoSources = sources
-    store.selectedVideoSource = { key: sources[0].id }
-    handleSelectChange(store.selectedVideoSource)//TODO 改变后不调用change
-  })
-}
+  getSources().then((sources) => {
+    store.videoSources = sources;
+    store.selectedVideoSource = { key: sources[0].id };
+    handleSelectChange(store.selectedVideoSource); //TODO 改变后不调用change
+  });
+};
 
 const onAudioChange = () => {
-  console.log(store.selectedAudioSource.key)
-  utools?.dbStorage.setItem("audioSource", store.selectedAudioSource.key)
-  handleSelectChange(store.selectedVideoSource)
-}
+  console.log(store.audioSources);
+  utools?.dbStorage.setItem("audioSource", JSON.stringify(store.audioSources));
+  handleSelectChange(store.selectedVideoSource);
+};
 
 // const resizeWindow = () => {
 //   const height = document.getElementById("app")?.offsetHeight || 300
@@ -226,18 +341,22 @@ const onAudioChange = () => {
 // }
 
 const handleSelectChange = (value) => {
-  console.log(value)
-  const source = store.videoSources.filter(source => source.id == value.key)[0]
-  getStream(source).then(stream => {
-    videoPreview.value.srcObject = stream;
-    setTimeout(() => {
-      // resizeWindow()
-      utools?.showMainWindow();
-    }, 500)
-  }).catch(err => {
-    console.log("get stream:", err)
-  })
-}
+  console.log(value);
+  const source = store.videoSources.filter(
+    (source) => source.id == value.key
+  )[0];
+  getStream(source)
+    .then((stream) => {
+      videoPreview.value.srcObject = stream;
+      setTimeout(() => {
+        // resizeWindow()
+        utools?.showMainWindow();
+      }, 500);
+    })
+    .catch((err) => {
+      console.log("get stream:", err);
+    });
+};
 
 // This starter template is using Vue 3 experimental <script setup> SFCs
 // Check out https://github.com/vuejs/rfcs/blob/master/active-rfcs/0040-script-setup.md

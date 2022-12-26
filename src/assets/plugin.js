@@ -12,19 +12,20 @@ if (typeof utools != "undefined") {
   utools.onPluginReady(() => {
     const store = useStore();
     if (utools.isWindows()) {
-      store.selectedAudioSource = { key: "system" };
+      store.audioSources = ["system"]
     } else {
-      store.selectedAudioSource = { key: "muted" };
+      store.audioSources = []
     }
     store.delayStart = utools.dbStorage.getItem("delayStart") || 3;
 
     const audioConfig = utools.dbStorage.getItem("audioSource");
     if (audioConfig) {
-      store.selectedAudioSource = { key: audioConfig };
+      console.log("read audio config:", audioConfig)
+      store.audioSources = JSON.parse(audioConfig)
     }
 
-    utools.setSubInput((text) => {},
-    '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏" "暂停恢复录屏"');
+    utools.setSubInput((text) => { },
+      '可在utools 全局快捷键设置中绑定关键字 "开始录屏" "停止录屏" "暂停恢复录屏"');
   });
 
   utools.onPluginEnter(({ code, type, payload }) => {

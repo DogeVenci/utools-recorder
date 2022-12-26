@@ -8,7 +8,7 @@ export const useStore = defineStore("main", {
       recorderState: "inactive",
       selectedVideoSource: { key: "screen:0:0" },
       videoSources: [],
-      selectedAudioSource: { key: "muted" },
+      audioSources: [],
       delayStart: 3,
       disableOperation: false,
       errorText: "",
@@ -28,5 +28,8 @@ export const useStore = defineStore("main", {
         };
       });
     },
+    hasSysAudio: state => state.audioSources.findIndex(audio => audio == "system") !== -1,
+    hasMicAudio: state => state.audioSources.findIndex(audio => audio == "mic") !== -1,
+    isMuted: state => state.audioSources.length === 0
   },
 });

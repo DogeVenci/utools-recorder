@@ -44,85 +44,24 @@ export const getSources = async () => {
   return sources;
 };
 
-const getUserMediaBySystem = async (source, muted) => {
+const getUserMediaMerge = async (source) => {
   const store = useStore();
-  let audio = {
-    //TODO 无法获得音频设备得情况
-    mandatory: {
-      chromeMediaSource: "desktop",
-    },
-  };
-  // if (utools.isMacOs() || utools.isLinux() || muted) {
-  if (muted) {
-    console.log("disable audio");
-    audio = false;
-  }
+  let tracks = []
+  let audio = false
   return new Promise(async (resolve, reject) => {
     try {
-      curStream = await navigator.mediaDevices.getUserMedia({
-        audio,
-        video: {
+      if (store.hasSysAudio) {
+        console.log("store.hasSysAudio")
+        audio = {
+          //TODO 无法获得音频设备得情况
           mandatory: {
             chromeMediaSource: "desktop",
-            chromeMediaSourceId: source.id,
           },
-        },
-      });
-      const videoTracks = curStream.getVideoTracks();
-      if (videoTracks?.length > 0) {
-        videoTracks[0].onended = () => {
-          store.errorText = Date.now() + " video source is ended";
         };
       }
-      resolve(curStream);
-    } catch (err) {
-      store.errorText = "" + err;
-      reject(err);
-    }
-  });
-};
-
-const getUserMediaByMicphone = async (source) => {
-  const store = useStore();
-  console.log("getUserMediaByMicphone");
-  return new Promise(async (resolve, reject) => {
-    try {
-      //navigator.mediaDevices.enumerateDevices()
-      const audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      //不能同时打开mic和录屏源
-      const videoStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          mandatory: {
-            chromeMediaSource: "desktop",
-            chromeMediaSourceId: source.id,
-          },
-        },
-      });
-      curStream = new MediaStream([
-        ...videoStream.getVideoTracks(),
-        ...audioStream.getAudioTracks(),
-      ]);
-      resolve(curStream);
-    } catch (err) {
-      store.errorText = "" + err;
-      reject(err);
-    }
-  });
-};
-
-const getUserMediaMerge = async () => {
-  const store = useStore();
-  return new Promise(async (resolve, reject) => {
-    try {
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
 
       const screenVideoStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
+        audio: audio,
         video: {
           mandatory: {
             chromeMediaSource: "desktop",
@@ -131,22 +70,19 @@ const getUserMediaMerge = async () => {
         },
       });
 
-      const screenAudioStream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: {
-          mandatory: {
-            chromeMediaSource: "desktop",
-          },
-        }
-      })
+      tracks = [...screenVideoStream.getVideoTracks(), ...screenVideoStream.getAudioTracks()]
 
-      curStream = new MediaStream([
-        ...screenVideoStream.getVideoTracks(),
-        ...screenAudioStream.getAudioTracks(),
-        ...micStream.getAudioTracks()
-      ]);
+      if (store.hasMicAudio) {
+        const micStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        tracks = [...tracks, ...micStream.getAudioTracks()]
+      }
+
+
+      curStream = new MediaStream(tracks);
       resolve(curStream);
-    } catch (e) {
+    } catch (err) {
       store.errorText = "" + err;
       reject(err);
     }
@@ -154,14 +90,7 @@ const getUserMediaMerge = async () => {
 }
 
 export const getStream = (source) => {
-  const store = useStore();
-  if (store.selectedAudioSource.key == "mic") {
-    return getUserMediaByMicphone(source);
-  } else if ((store.selectedAudioSource.key == "muted")) {
-    return getUserMediaBySystem(source, true);
-  } else {
-    return getUserMediaBySystem(source, false);
-  }
+  return getUserMediaMerge(source);
 };
 
 
