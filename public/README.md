@@ -11,6 +11,9 @@
 MacOS Linux 无法内录音频 可使用 soundFlower 或 blackHole 等虚拟声卡软件转录到 mic
 
 ## changlog
+> ### 1.2.1(2022-12-26)
+> - 修改可设置同时内录系统声音和麦克风声音
+
 > ### 1.2.0(2022-07-31)
 > - 添加FFmpeg wasm 转码MP4
 
