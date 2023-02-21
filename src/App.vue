@@ -134,18 +134,6 @@
           </div>
         </div>
         <a-button-group>
-          <a-tooltip placement="bottom" title="选择录像保存目录">
-            <a-button
-              @click="onSaveClick"
-              :disabled="
-                store.recorderState != 'inactive' || store.disableOperation
-              "
-            >
-              <template #icon>
-                <FolderOpenOutlined />
-              </template>
-            </a-button>
-          </a-tooltip>
           <a-tooltip placement="bottom" title="打开录像目录">
             <a-button @click="openVideoDir">
               <template #icon>
@@ -153,10 +141,24 @@
               </template>
             </a-button>
           </a-tooltip>
+          <a-tooltip placement="bottom" title="设置">
+            <a-button
+              @click="onSettingClick"
+              :disabled="
+                store.recorderState != 'inactive' || store.disableOperation
+              "
+            >
+              <template #icon>
+                <setting-outlined />
+              </template>
+            </a-button>
+          </a-tooltip>
         </a-button-group>
       </div>
       <div class="mb-4 border"></div>
       <video id="video" ref="videoPreview" class="width-100" muted></video>
+
+      <Setting />
     </a-spin>
   </div>
 </template>
@@ -190,6 +192,7 @@ import {
   SoundOutlined,
   AudioOutlined,
   AudioMutedOutlined,
+  SettingOutlined,
 } from "@ant-design/icons-vue";
 import PauseIcon from "./components/PauseIcon.vue";
 import PlayIcon from "./components/PlayIcon.vue";
@@ -198,9 +201,14 @@ import StopIcon from "./components/StopIcon.vue";
 import OpenIcon from "./components/OpenIcon.vue";
 import { notification } from "ant-design-vue";
 import NotificationButton from "./components/NotificationButton.vue";
+import Setting from "./components/Setting.vue";
 
 const videoPreview = ref(null);
 let countDown = ref(0);
+
+const data = reactive({
+  settingVisable: false,
+});
 
 watch(errorText, (text, prevText) => {
   stopRecord();
@@ -304,23 +312,6 @@ const onDelayChange = (e) => {
   utools?.dbStorage.setItem("delayStart", delay);
 };
 
-const onSaveClick = () => {
-  const dirs = utools?.showOpenDialog({
-    title: "选择保存目录",
-    defaultPath: mediaFile.getOutputDir(),
-    buttonLabel: "选择此目录",
-    properties: [
-      "openDirectory",
-      "createDirectory",
-      "dontAddToRecent",
-      "treatPackageAsDirectory",
-    ],
-  });
-  if (dirs?.length && dirs[0]?.length) {
-    mediaFile.setOutputDir(dirs[0]);
-  }
-};
-
 const onRefreshClick = () => {
   getSources().then((sources) => {
     store.videoSources = sources;
@@ -333,6 +324,10 @@ const onAudioChange = () => {
   console.log(store.audioSources);
   utools?.dbStorage.setItem("audioSource", JSON.stringify(store.audioSources));
   handleSelectChange(store.selectedVideoSource);
+};
+
+const onSettingClick = () => {
+  store.settingVisable = true;
 };
 
 // const resizeWindow = () => {
@@ -362,7 +357,7 @@ const handleSelectChange = (value) => {
 // Check out https://github.com/vuejs/rfcs/blob/master/active-rfcs/0040-script-setup.md
 </script>
 
-<style>
+<style lang="less">
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -437,5 +432,22 @@ const handleSelectChange = (value) => {
 
 .width-20 {
   width: 20rem;
+}
+
+.full-modal {
+  .ant-modal {
+    max-width: 100%;
+    top: 0;
+    padding-bottom: 0;
+    margin: 0;
+  }
+  .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh);
+  }
+  .ant-modal-body {
+    flex: 1;
+  }
 }
 </style>

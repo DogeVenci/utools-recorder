@@ -15,6 +15,8 @@ export const useStore = defineStore("main", {
       savedText: "",
       savedFilePath: "",
       loading: false,
+      settingVisable: false,
+      outputDir: ""
     };
   },
   getters: {

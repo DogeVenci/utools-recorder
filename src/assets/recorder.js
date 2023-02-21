@@ -19,6 +19,7 @@ const compareVersion = (v1, v2) => {
 
 
 export const getSources = async () => {
+  if (!window.utools) return;
   let sources = [];
   if (compareVersion(utools.getAppVersion(), "2.6.1") >= 0) {
     sources = await utools.desktopCaptureSources({
