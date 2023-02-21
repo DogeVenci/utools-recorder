@@ -35,6 +35,7 @@ const store = useStore();
 onMounted(() => {
   if (!window.utools) return;
   store.outputDir = mediaFile.getOutputDir();
+  store.recentFilelist = mediaFile.getRecentFilelist();
 });
 
 const onSettingOkClick = () => {

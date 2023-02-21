@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const { desktopCapturer } = require("electron");
 const ffmpeg = require("./ffmpeg-mp4.js");
+const maxRecent = 10;
 window.desktopCapturer = desktopCapturer; // 兼容utools 2.6.1 之前的版本
 
 const runFFmpeg = async (filepath) => {
@@ -150,6 +151,20 @@ const setOutputDir = (dirPath) => {
   utools.dbStorage.setItem("output", dirPath);
 };
 
+const getRecentFilelist = () => {
+  const list = utools.dbStorage.getItem("recentFileList")
+  return JSON.parse(list) || []
+}
+
+const addToRecentFilelist = (item) => {
+  const list = getRecentFilelist()
+  if (list.length >= maxRecent) {
+    list.pop()
+  }
+  list.unshift(item)
+  utools.dbStorage.setItem("recentFileList", JSON.stringify(list))
+}
+
 window.onbeforeunload = () => {
   console.log("onbeforeunload");
 };
@@ -165,5 +180,7 @@ window.mediaFile = {
   CloseMediaFile,
   getOutputDir,
   setOutputDir,
+  getRecentFilelist,
+  addToRecentFilelist,
   Buffer,
 };

@@ -206,10 +206,6 @@ import Setting from "./components/Setting.vue";
 const videoPreview = ref(null);
 let countDown = ref(0);
 
-const data = reactive({
-  settingVisable: false,
-});
-
 watch(errorText, (text, prevText) => {
   stopRecord();
   document.hidden && utools?.showNotification(text, "lp"); //隐藏窗口时弹出错误提示

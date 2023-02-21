@@ -144,6 +144,7 @@ export const startRecord = (stream) => {
     }
     store.savedText = `${mediaFile.getMediaFileName()} Saved`;
     store.savedFilePath = mediaFile.getMediaFilePath();
+    mediaFile.addToRecentFilelist({ filepath: store.savedFilePath })
     mediaRecorder = null;
     chunks = [];
     utools.shellBeep();

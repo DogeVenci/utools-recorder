@@ -16,7 +16,8 @@ export const useStore = defineStore("main", {
       savedFilePath: "",
       loading: false,
       settingVisable: false,
-      outputDir: ""
+      outputDir: "",
+      recentFilelist: []
     };
   },
   getters: {
