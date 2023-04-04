@@ -17,7 +17,8 @@ export const useStore = defineStore("main", {
       loading: false,
       settingVisable: false,
       outputDir: "",
-      recentFilelist: []
+      recentFilelist: [],
+      outFileFormat: "webm"
     };
   },
   getters: {

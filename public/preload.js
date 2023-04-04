@@ -73,6 +73,8 @@ const convert2Gif = async (filepath) => {
         "error",
         "-i",
         `/data/${filename}`,
+        "-r",
+        "1",
         "-y",
         `/data/${basename}.gif`,
       ],
@@ -155,6 +157,17 @@ const getRecentFilelist = () => {
   const list = utools.dbStorage.getItem("recentFileList")
   return JSON.parse(list) || []
 }
+
+const getOutFileFormat = () => {
+  return utools.dbStorage.getItem("outfileFormat") || "webm"
+}
+
+const setOutFileFormat = (format) => {
+  utools.dbStorage.setItem("outfileFormat", format)
+}
+
+window.getOutFileFormat = getOutFileFormat
+window.setOutFileFormat = setOutFileFormat
 
 const addToRecentFilelist = (item) => {
   const list = getRecentFilelist()

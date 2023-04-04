@@ -202,6 +202,7 @@ import OpenIcon from "./components/OpenIcon.vue";
 import { notification } from "ant-design-vue";
 import NotificationButton from "./components/NotificationButton.vue";
 import Setting from "./components/Setting.vue";
+import { convertVideo } from "./assets/convert";
 
 const videoPreview = ref(null);
 let countDown = ref(0);
@@ -212,7 +213,8 @@ watch(errorText, (text, prevText) => {
 });
 
 watch(savedText, (text, prevText) => {
-  openNotification(text, "点击'转换格式'转换成mp4格式。");
+  convertVideo();
+  // openNotification(text, "点击'转换格式'转换成mp4格式。");
 });
 
 const openNotification = (title, description) => {
@@ -323,6 +325,7 @@ const onAudioChange = () => {
 };
 
 const onSettingClick = () => {
+  store.recentFilelist = mediaFile.getRecentFilelist();
   store.settingVisable = true;
 };
 
@@ -445,5 +448,9 @@ const handleSelectChange = (value) => {
   .ant-modal-body {
     flex: 1;
   }
+}
+
+.ant-spin {
+  z-index: 9999 !important;
 }
 </style>

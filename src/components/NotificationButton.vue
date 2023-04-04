@@ -20,7 +20,7 @@ export default {
       const store = useStore();
       store.loading = true;
       setTimeout(() => {
-        convert2Gif(store.savedFilePath);
+        // convert2Gif(store.savedFilePath);
         runFFmpeg(store.savedFilePath)
           .then((filepath) => {
             window?.utools?.shellShowItemInFolder(filepath);
