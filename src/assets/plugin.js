@@ -54,8 +54,13 @@ if (typeof utools != "undefined") {
     }
   });
 
-  utools.onPluginOut(() => {
-    console.log("onPluginOut");
+  utools.onPluginOut((processExit) => {
+    console.log("onPluginOut", processExit);
+    if (processExit) {
+      //退出
+    } else {
+      //隐藏
+    }
   });
 }
 

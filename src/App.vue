@@ -256,14 +256,13 @@ const infoText = computed(() => {
 
 onMounted(() => {
   videoPreview.value.onloadedmetadata = (e) => videoPreview.value.play();
-});
-
-getSources().then((sources) => {
-  if (!window.utools) return;
-  store.videoSources = sources;
-  store.selectedVideoSource = { key: sources[0].id };
-  getStream(sources[0]).then((stream) => {
-    videoPreview.value.srcObject = stream;
+  onRefreshClick();
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      videoPreview.value.play();
+    } else if (document.visibilityState === "hidden") {
+      videoPreview.value.pause();
+    }
   });
 });
 
@@ -312,8 +311,11 @@ const onDelayChange = (e) => {
 
 const onRefreshClick = () => {
   getSources().then((sources) => {
+    if (!sources?.length) return;
     store.videoSources = sources;
-    store.selectedVideoSource = { key: sources[0].id };
+    const mainScreenSource =
+      sources.find((source) => source.id == "screen:0:0")?.id || sources[0].id;
+    store.selectedVideoSource = { key: mainScreenSource };
     handleSelectChange(store.selectedVideoSource); //TODO 改变后不调用change
   });
 };
